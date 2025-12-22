@@ -70,11 +70,11 @@ def ℚℤconvert (i : List ℚ) : List ℤ :=
 #eval ℚℤconvert (ℚnormalize [4,2,0,-1,1,4])
 #eval ℤℚconvert [4,2,0,-1,1,4]
 
-def removeLeadingZeros (R : Type*) [Ring R] : List R → List R
+def removeLeadingZeros (R : Type*) [Ring R] [DecidableEq R]: List R → List R
   | [] => []
   | z::zs => if z=0 then (removeLeadingZeros R zs) else z::zs
 
-def removeZeros (R : Type*) [Ring R] (i : List R) : List R :=
+def removeZeros (R : Type*) [Ring R] [DecidableEq R] (i : List R) : List R :=
   (removeLeadingZeros R i.reverse).reverse
 
 #min_imports
