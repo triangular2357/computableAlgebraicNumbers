@@ -1,10 +1,21 @@
 import Mathlib
 --import Mathlib.Algebra.Ring.Defs
 
-@[ext] structure Polynom (R : Type*) [Ring R] where
+@[ext] structure Polynom (R : Type*) [Ring R] [DecidableEq R] where
   coeficients : List R
 --TODO disallow tailing zeros
 --TODO use this structure
+--TODO in which order should polynomial be saved right now its `[c₀,c₁,c₂,...,cₙ]`
+
+
+-- TODO is underscore a good marker for functions which should only be used internally
+-- this method should only be used on reversed polynomials (or to factor X's out)
+private def _removeLeadingZeros (R : Type*) [Ring R] [DecidableEq R] : List R → List R
+  | [] => []
+  | z::zs => if z=0 then (_removeLeadingZeros R zs) else z::zs
+
+def removeTailingZeros (R : Type*) [Ring R] [DecidableEq R] (i : List R) : List R :=
+  (_removeLeadingZeros R i.reverse).reverse
 
 def add (R : Type*) [Ring R] : List R → List R → List R
   | []     , bs      => bs
@@ -39,8 +50,11 @@ def ℚlcd : List ℚ → ℕ --least common denominator
   | r::[]=> r.den
   | r::rs=> r.den.lcm (ℚlcd rs)
 
-def ℤnormalize (i : List ℤ):List ℤ :=
+private def _ℤnormalize (i : List ℤ):List ℤ :=
   ℤdiv ((i.getLastD 1).sign * ℤgcd i) i --last element must not be zero
+
+def ℤnormalize (i : List ℤ):List ℤ :=
+  _ℤnormalize (removeTailingZeros ℤ i)
 
 def ℚnormalize (i : List ℚ):List ℚ := ℚdiv (i.getLastD 1) i
 
@@ -48,12 +62,12 @@ def ℤℚconvert : List ℤ → List ℚ
   | [] => []
   | z::zs=> z :: ℤℚconvert zs
 
-def ℚℤmulConvert : ℤ → List ℚ → List ℤ
+private def _ℚℤmulConvert : ℤ → List ℚ → List ℤ
   | _, [] => []
-  | x,z::zs=> (z*x).num / (z*x).den  :: ℚℤmulConvert x zs
+  | x,z::zs=> (z*x).num / (z*x).den  :: _ℚℤmulConvert x zs
 
 def ℚℤconvert (i : List ℚ) : List ℤ :=
-  ℚℤmulConvert (ℚlcd i) i
+  _ℚℤmulConvert (ℚlcd i) i
 
 #eval mul ℤ [1]           [3]
 #eval mul ℤ [1,4]         [3]
@@ -70,11 +84,5 @@ def ℚℤconvert (i : List ℚ) : List ℤ :=
 #eval ℚℤconvert (ℚnormalize [4,2,0,-1,1,4])
 #eval ℤℚconvert [4,2,0,-1,1,4]
 
-def removeLeadingZeros (R : Type*) [Ring R] [DecidableEq R]: List R → List R
-  | [] => []
-  | z::zs => if z=0 then (removeLeadingZeros R zs) else z::zs
-
-def removeZeros (R : Type*) [Ring R] [DecidableEq R] (i : List R) : List R :=
-  (removeLeadingZeros R i.reverse).reverse
 
 #min_imports
