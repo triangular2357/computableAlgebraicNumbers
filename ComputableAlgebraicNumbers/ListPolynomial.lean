@@ -50,11 +50,9 @@ def ℚlcd : List ℚ → ℕ --least common denominator
   | r::[]=> r.den
   | r::rs=> r.den.lcm (ℚlcd rs)
 
-private def _ℤnormalize (i : List ℤ):List ℤ :=
-  ℤdiv ((i.getLastD 1).sign * ℤgcd i) i --last element must not be zero
-
 def ℤnormalize (i : List ℤ):List ℤ :=
-  _ℤnormalize (removeTailingZeros ℤ i)
+  let i' := removeTailingZeros ℤ i --last element must not be zero otherwise it breaks
+  ℤdiv ((i'.getLastD 1).sign * ℤgcd i') i'
 
 def ℚnormalize (i : List ℚ):List ℚ := ℚdiv (i.getLastD 1) i
 
