@@ -8,14 +8,11 @@ import Mathlib
 --TODO in which order should polynomial be saved right now its `[c₀,c₁,c₂,...,cₙ]`
 
 
--- TODO is underscore a good marker for functions which should only be used internally
--- this method should only be used on reversed polynomials (or to factor X's out)
-private def _removeLeadingZeros (R : Type*) [Ring R] [DecidableEq R] : List R → List R
-  | [] => []
-  | z::zs => if z=0 then (_removeLeadingZeros R zs) else z::zs
-
 def removeTailingZeros (R : Type*) [Ring R] [DecidableEq R] (i : List R) : List R :=
-  (_removeLeadingZeros R i.reverse).reverse
+  let rec _removeLeadingZeros : List R → List R
+    | [] => []
+    | z::zs => if z=0 then (_removeLeadingZeros zs) else z::zs
+  (_removeLeadingZeros i.reverse).reverse
 
 def add (R : Type*) [Ring R] : List R → List R → List R
   | []     , bs      => bs
@@ -60,11 +57,10 @@ def ℤℚconvert : List ℤ → List ℚ
   | [] => []
   | z::zs=> z :: ℤℚconvert zs
 
-private def _ℚℤmulConvert : ℤ → List ℚ → List ℤ
-  | _, [] => []
-  | x,z::zs=> (z*x).num / (z*x).den  :: _ℚℤmulConvert x zs
-
 def ℚℤconvert (i : List ℚ) : List ℤ :=
+  let rec _ℚℤmulConvert : ℤ → List ℚ → List ℤ
+    | _, [] => []
+    | x,z::zs=> (z*x).num / (z*x).den  :: _ℚℤmulConvert x zs
   _ℚℤmulConvert (ℚlcd i) i
 
 #eval mul ℤ [1]           [3]
