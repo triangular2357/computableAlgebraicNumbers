@@ -1,4 +1,5 @@
 import Mathlib
+--import Mathlib.Algebra.Ring.Defs
 
 @[ext] structure Polynom (R : Type*) [Ring R] where
   coeficients : List R
@@ -20,7 +21,7 @@ def ℤdiv : ℤ  → List ℤ → List ℤ
 
 def ℚdiv : ℚ  → List ℚ → List ℚ
   | _,      [] => []
-  | r, a :: as => (a/r) :: (ℚdiv r as)
+  | r, a :: as => (a / r) :: (ℚdiv r as)
 
 def mul (R : Type*) [Ring R] : List R → List R → List R
   | _      , []       => []
@@ -33,10 +34,10 @@ def ℤgcd : List ℤ → ℕ
   | r::[]=> r.natAbs
   | r::rs=> r.gcd (ℤgcd rs)
 
-def ℚlcdm : List ℚ → ℕ --least common denominator multiple
+def ℚlcd : List ℚ → ℕ --least common denominator
   | [] => 1
   | r::[]=> r.den
-  | r::rs=> r.den.lcm (ℚlcdm rs)
+  | r::rs=> r.den.lcm (ℚlcd rs)
 
 def ℤnormalize (i : List ℤ):List ℤ :=
   ℤdiv ((i.getLastD 1).sign * ℤgcd i) i --last element must not be zero
@@ -51,8 +52,8 @@ def ℚℤmulConvert : ℤ → List ℚ → List ℤ
   | _, [] => []
   | x,z::zs=> (z*x).num / (z*x).den  :: ℚℤmulConvert x zs
 
-def ℚℤConvert (i : List ℚ) : List ℤ :=
-  ℚℤmulConvert (ℚlcdm i) i
+def ℚℤconvert (i : List ℚ) : List ℤ :=
+  ℚℤmulConvert (ℚlcd i) i
 
 #eval mul ℤ [1]           [3]
 #eval mul ℤ [1,4]         [3]
@@ -66,7 +67,8 @@ def ℚℤConvert (i : List ℚ) : List ℤ :=
 #eval ℤnormalize   [-6]
 #eval ℚdiv   2 [4,2,0,-1,1,4]
 #eval ℚnormalize [4,2,0,-1,1,4]
-#eval ℚℤConvert (ℚnormalize [4,2,0,-1,1,4])
+#eval ℚℤconvert (ℚnormalize [4,2,0,-1,1,4])
+#eval ℤℚconvert [4,2,0,-1,1,4]
 
 
 #min_imports
