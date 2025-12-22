@@ -3,34 +3,34 @@ import Mathlib.Tactic
 
 namespace CPolynomial
 
-def normalized {R : Type*} [Ring R] : List R → Prop
+def noLeadingZero {R : Type*} [Ring R] : List R → Prop
   | []     => True
   | x :: _ => x ≠ 0
 
 structure CPoly (R : Type*) [Ring R] where
   coefs : List R
-  norm : normalized coefs.reverse
+  norm : noLeadingZero coefs.reverse
 
-def normalize' {R : Type*} [Ring R] [DecidableEq R] : List R → List R
+def removeLeadingZeros {R : Type*} [Ring R] [DecidableEq R] : List R → List R
   | []      => []
-  | x :: xs => if x = 0 then normalize' xs else x :: xs
+  | x :: xs => if x = 0 then removeLeadingZeros xs else x :: xs
 
-lemma normaized_normalize {R : Type*} [Ring R] [DecidableEq R]
-    (l : List R) : normalized (normalize' l) := by
+lemma noLeadingZero_removeLeadingZeros {R : Type*} [Ring R] [DecidableEq R]
+    (l : List R) : noLeadingZero (removeLeadingZeros l) := by
   induction l with
   | nil => trivial
   | cons x xs ih =>
-    unfold normalize'
-    rw [apply_ite normalized]
+    unfold removeLeadingZeros
+    rw [apply_ite noLeadingZero]
     by_cases h : x = 0
     · rwa [if_pos h]
     · rwa [if_neg h]
 
 def normalize {R : Type*} [Ring R] [DecidableEq R]
     (l : List R) : CPoly R :=
-  ⟨(normalize' l.reverse).reverse, by
+  ⟨(removeLeadingZeros l.reverse).reverse, by
     rw [List.reverse_reverse]
-    apply normaized_normalize
+    apply noLeadingZero_removeLeadingZeros
   ⟩
 
 end CPolynomial
