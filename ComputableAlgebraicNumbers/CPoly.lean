@@ -3,26 +3,26 @@ import Mathlib.Tactic
 
 namespace CPoly
 
-private def _noLeadingZero {R : Type*} [Ring R] : List R → Prop
+private def _noLeadingZero {R : Type*} [CommSemiring R] : List R → Prop
   | []     => True
   | x :: _ => x ≠ 0
 
-def noTailingZero {R : Type*} [Ring R] (i : List R) : Prop :=
+def noTailingZero {R : Type*} [CommSemiring R] (i : List R) : Prop :=
   _noLeadingZero i.reverse
 
 end CPoly
 
-structure CPoly (R : Type*) [Ring R] where
+structure CPoly (R : Type*) [CommSemiring R] where
   coefs : List R -- `[c₀,c₁,c₂,...,cₙ]` and then `∑ Xⁱcᵢ`
   condition : CPoly.noTailingZero coefs
 
 namespace CPoly
 
-private def _removeLeadingZeros {R : Type*} [Ring R] [DecidableEq R] : List R → List R
+private def _removeLeadingZeros {R : Type*} [DecidableEq R] [CommSemiring R] : List R → List R
   | []      => []
   | x :: xs => if x = 0 then _removeLeadingZeros xs else x :: xs
 
-private lemma _noLeadingZero_removeLeadingZeros {R : Type*} [Ring R] [DecidableEq R]
+private lemma _noLeadingZero_removeLeadingZeros {R : Type*} [DecidableEq R] [CommSemiring R]
     (l : List R) : _noLeadingZero (_removeLeadingZeros l) := by
   induction l with
   | nil => trivial
@@ -33,7 +33,7 @@ private lemma _noLeadingZero_removeLeadingZeros {R : Type*} [Ring R] [DecidableE
     · rwa [if_pos h]
     · rwa [if_neg h]
 
-def removeTailingZeros {R : Type*} [Ring R] [DecidableEq R]
+def removeTailingZeros {R : Type*} [DecidableEq R] [CommSemiring R]
     (l : List R) : CPoly R :=
   ⟨(_removeLeadingZeros l.reverse).reverse, by
     unfold noTailingZero
@@ -41,23 +41,36 @@ def removeTailingZeros {R : Type*} [Ring R] [DecidableEq R]
     apply _noLeadingZero_removeLeadingZeros
   ⟩
 
-def list_add (R : Type*) [Ring R] : List R → List R → List R
+def list_add (R : Type*) [CommSemiring R] : List R → List R → List R
   | []     , bs      => bs
   | as     , []      => as
   | a :: as, b :: bs => (a+b) :: (list_add R as bs)
 
-def list_smul (R : Type*) [Ring R] : R → List R → List R
+def add {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : CPoly R :=
+  removeTailingZeros (list_add R a.coefs b.coefs)
+
+def list_smul (R : Type*) [CommSemiring R] : R → List R → List R
   | _,      [] => []
   | r, a :: as => (r*a) :: (list_smul R r as)
 
-def list_mul (R : Type*) [Ring R] : List R → List R → List R
+def smul {R : Type*} [DecidableEq R] [CommSemiring R] (a : R) (b : CPoly R) : CPoly R :=
+  removeTailingZeros (list_smul R a b.coefs)
+
+def list_mul (R : Type*) [CommSemiring R] : List R → List R → List R
   | []     , _  => []
   | a :: as, bs => list_add R (list_smul R a bs) (0 :: list_mul R as bs)
 
+def mul {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : CPoly R :=
+  removeTailingZeros (list_mul R a.coefs b.coefs)
+
  --semiring so Polys in ℕ work idk if this is useful
-def list_eval {R : Type*} [Semiring R] : List R → R → R
+def list_eval (R : Type*) [CommSemiring R] : List R → R → R
   | [] => 0
-  | a :: as => fun r ↦ a + r * list_eval as r
+  | a :: as => fun r ↦ a + r * list_eval R as r
+
+def eval {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) (b : R) : R :=
+  list_eval R a.coefs b
+
 
 
 def ℤdiv : ℤ  → List ℤ → List ℤ
@@ -110,10 +123,10 @@ def ℚℤconvert (i : List ℚ) : List ℤ :=
 #eval list_mul ℤ [1,2,3,4]   [5,7]
 #eval list_add ℤ [1,4]         [3]
 #eval list_smul ℤ 2          [1,4]
-#eval list_eval [4,2] 2
-#eval list_eval [2,3,-1] (-1)
-#eval list_eval [0,6] 2
-#eval list_eval [0,0,0,0,1] 2
+#eval list_eval ℤ [4,2] 2
+#eval list_eval ℤ [2,3,-1] (-1)
+#eval list_eval ℤ [0,6] 2
+#eval list_eval ℤ [0,0,0,0,1] 2
 
 #eval ℤdiv   2 [4,2,0,-1,1,4]
 #eval ℤnormalize   [4,2,0,4]
