@@ -1,8 +1,7 @@
 import Mathlib.Algebra.Ring.Defs
 import Mathlib.Tactic
 
-namespace CPolynomial
-
+namespace CPoly
 
 private def _noLeadingZero {R : Type*} [Ring R] : List R → Prop
   | []     => True
@@ -11,9 +10,13 @@ private def _noLeadingZero {R : Type*} [Ring R] : List R → Prop
 def noTailingZero {R : Type*} [Ring R] (i : List R) : Prop :=
   _noLeadingZero i.reverse
 
+end CPoly
+
 structure CPoly (R : Type*) [Ring R] where
   coefs : List R -- `[c₀,c₁,c₂,...,cₙ]` and then `∑ Xⁱcᵢ`
-  norm : noTailingZero coefs
+  condition : CPoly.noTailingZero coefs
+
+namespace CPoly
 
 private def _removeLeadingZeros {R : Type*} [Ring R] [DecidableEq R] : List R → List R
   | []      => []
@@ -38,25 +41,23 @@ def removeTailingZeros {R : Type*} [Ring R] [DecidableEq R]
     apply _noLeadingZero_removeLeadingZeros
   ⟩
 
-def add (R : Type*) [Ring R] : List R → List R → List R
+def list_add (R : Type*) [Ring R] : List R → List R → List R
   | []     , bs      => bs
   | as     , []      => as
-  | a :: as, b :: bs => (a+b) :: (add R as bs)
+  | a :: as, b :: bs => (a+b) :: (list_add R as bs)
 
-def smul (R : Type*) [Ring R] : R → List R → List R
+def list_smul (R : Type*) [Ring R] : R → List R → List R
   | _,      [] => []
-  | r, a :: as => (r*a) :: (smul R r as)
+  | r, a :: as => (r*a) :: (list_smul R r as)
 
-def mul (R : Type*) [Ring R] : List R → List R → List R
-  | _      , []       => []
-  | []     , _        => []
-  | a :: [], b :: []  => [(a*b)]
-  | a :: as, b :: bs  => (a*b) :: add R (add R (smul R b as) (smul R a bs)) (0 :: mul R as bs)
+def list_mul (R : Type*) [Ring R] : List R → List R → List R
+  | []     , _  => []
+  | a :: as, bs => list_add R (list_smul R a bs) (0 :: list_mul R as bs)
 
  --semiring so Polys in ℕ work idk if this is useful
-def eval {R : Type*} [Semiring R] : List R → R → R
+def list_eval {R : Type*} [Semiring R] : List R → R → R
   | [] => 0
-  | a :: as => fun r ↦ a + r * eval as r
+  | a :: as => fun r ↦ a + r * list_eval as r
 
 
 def ℤdiv : ℤ  → List ℤ → List ℤ
@@ -103,16 +104,16 @@ def ℚℤconvert (i : List ℚ) : List ℤ :=
 
 
 
-#eval mul ℤ [1]           [3]
-#eval mul ℤ [1,4]         [3]
-#eval mul ℤ [1,4]       [3,4]
-#eval mul ℤ [1,2,3,4]   [5,7]
-#eval add ℤ [1,4]         [3]
-#eval smul ℤ 2          [1,4]
-#eval eval [4,2] 2
-#eval eval [2,3,-1] (-1)
-#eval eval [0,6] 2
-#eval eval [0,0,0,0,1] 2
+#eval list_mul ℤ [1]           [3]
+#eval list_mul ℤ [1,4]         [3]
+#eval list_mul ℤ [1,4]       [3,4]
+#eval list_mul ℤ [1,2,3,4]   [5,7]
+#eval list_add ℤ [1,4]         [3]
+#eval list_smul ℤ 2          [1,4]
+#eval list_eval [4,2] 2
+#eval list_eval [2,3,-1] (-1)
+#eval list_eval [0,6] 2
+#eval list_eval [0,0,0,0,1] 2
 
 #eval ℤdiv   2 [4,2,0,-1,1,4]
 #eval ℤnormalize   [4,2,0,4]
@@ -123,4 +124,4 @@ def ℚℤconvert (i : List ℚ) : List ℤ :=
 #eval ℚℤconvert (ℚnormalize [4,2,0,-1,1,4])
 #eval ℤℚconvert [4,2,0,-1,1,4]
 
-end CPolynomial
+end CPoly
