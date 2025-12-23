@@ -147,7 +147,7 @@ private unsafe def _reducedRowEchelonForm (M : List (List ℚ)) :List (List ℚ)
     )
     let stay := M''.find? (fun l ↦ ¬( l.getD 0 0 = 0)) --should only contain the i's row
     let smaller := (M''.filter (fun l ↦ l.getD 0 0 = 0)).map ( --should contain everything else
-      fun l => match l with | [] => [] | _ :: qs => qs) -- remove first column
+      fun l => match l with | [] => [] | _ :: qs => qs) -- removes the first column
     let processedSmaller := _reducedRowEchelonForm smaller
     let processedSmallerWithLeadingZeros :=
       processedSmaller.map (fun l ↦ 0::l)
