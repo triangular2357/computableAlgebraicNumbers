@@ -11,24 +11,24 @@ structure CPoly (R : Type*) [Ring R] where
   coefs : List R
   norm : noLeadingZero coefs.reverse
 
-def removeLeadingZeros {R : Type*} [Ring R] [DecidableEq R] : List R → List R
+def removeLeadingZeros' {R : Type*} [Ring R] [DecidableEq R] : List R → List R
   | []      => []
-  | x :: xs => if x = 0 then removeLeadingZeros xs else x :: xs
+  | x :: xs => if x = 0 then removeLeadingZeros' xs else x :: xs
 
 lemma noLeadingZero_removeLeadingZeros {R : Type*} [Ring R] [DecidableEq R]
-    (l : List R) : noLeadingZero (removeLeadingZeros l) := by
+    (l : List R) : noLeadingZero (removeLeadingZeros' l) := by
   induction l with
   | nil => trivial
   | cons x xs ih =>
-    unfold removeLeadingZeros
+    unfold removeLeadingZeros'
     rw [apply_ite noLeadingZero]
     by_cases h : x = 0
     · rwa [if_pos h]
     · rwa [if_neg h]
 
-def normalize {R : Type*} [Ring R] [DecidableEq R]
+def removeLeadingZeros {R : Type*} [Ring R] [DecidableEq R]
     (l : List R) : CPoly R :=
-  ⟨(removeLeadingZeros l.reverse).reverse, by
+  ⟨(removeLeadingZeros' l.reverse).reverse, by
     rw [List.reverse_reverse]
     apply noLeadingZero_removeLeadingZeros
   ⟩
