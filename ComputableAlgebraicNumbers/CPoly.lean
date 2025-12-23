@@ -12,7 +12,7 @@ def noTailingZero {R : Type*} [Ring R] (i : List R) : Prop :=
   _noLeadingZero i.reverse
 
 structure CPoly (R : Type*) [Ring R] where
-  coefs : List R
+  coefs : List R -- `[c₀,c₁,c₂,...,cₙ]` and then `∑ Xⁱcᵢ`
   norm : noTailingZero coefs
 
 private def _removeLeadingZeros {R : Type*} [Ring R] [DecidableEq R] : List R → List R
@@ -37,5 +37,70 @@ def removeTailingZeros {R : Type*} [Ring R] [DecidableEq R]
     rw [List.reverse_reverse]
     apply _noLeadingZero_removeLeadingZeros
   ⟩
+
+def add (R : Type*) [Ring R] : List R → List R → List R
+  | []     , bs      => bs
+  | as     , []      => as
+  | a :: as, b :: bs => (a+b) :: (add R as bs)
+
+def smul (R : Type*) [Ring R] : R → List R → List R
+  | _,      [] => []
+  | r, a :: as => (r*a) :: (smul R r as)
+
+def ℤdiv : ℤ  → List ℤ → List ℤ
+  | _,      [] => []
+  | r, a :: as => (a/r) :: (ℤdiv r as)
+
+def ℚdiv : ℚ  → List ℚ → List ℚ
+  | _,      [] => []
+  | r, a :: as => (a / r) :: (ℚdiv r as)
+
+def mul (R : Type*) [Ring R] : List R → List R → List R
+  | _      , []       => []
+  | []     , _        => []
+  | a :: [], b :: []  => [(a*b)]
+  | a :: as, b :: bs  => (a*b) :: add R (add R (smul R b as) (smul R a bs)) (0 :: mul R as bs)
+
+def ℤgcd : List ℤ → ℕ
+  | [] => 0
+  | r::[]=> r.natAbs
+  | r::rs=> r.gcd (ℤgcd rs)
+
+def ℚlcd : List ℚ → ℕ --least common denominator
+  | [] => 1
+  | r::[]=> r.den
+  | r::rs=> r.den.lcm (ℚlcd rs)
+
+def ℤnormalize (i : List ℤ):List ℤ :=
+  let i' := (removeTailingZeros i).coefs --maybe make a new function only on lists?
+  --last element must not be zero otherwise it breaks
+  ℤdiv ((i'.getLastD 1).sign * ℤgcd i') i'
+
+def ℚnormalize (i : List ℚ):List ℚ := ℚdiv (i.getLastD 1) i
+
+def ℤℚconvert : List ℤ → List ℚ
+  | [] => []
+  | z::zs=> z :: ℤℚconvert zs
+
+def ℚℤconvert (i : List ℚ) : List ℤ :=
+  let rec _ℚℤmulConvert : ℤ → List ℚ → List ℤ
+    | _, [] => []
+    | x,z::zs=> (z*x).num / (z*x).den  :: _ℚℤmulConvert x zs
+  _ℚℤmulConvert (ℚlcd i) i
+
+#eval mul ℤ [1]           [3]
+#eval mul ℤ [1,4]         [3]
+#eval mul ℤ [1,4]       [3,4]
+#eval mul ℤ [1,2,3,4]   [5,7]
+#eval add ℤ [1,4]         [3]
+#eval smul ℤ 2          [1,4]
+#eval ℤdiv   2 [4,2,0,-1,1,4]
+#eval ℤnormalize   [4,2,0,4]
+#eval ℤnormalize   [4,2,0]
+#eval ℤnormalize   [-6]
+#eval ℚdiv   2 [4,2,0,-1,1,4]
+#eval ℚnormalize [4,2,0,-1,1,4]
+#eval ℚℤconvert (ℚnormalize [4,2,0,-1,1,4])
+#eval ℤℚconvert [4,2,0,-1,1,4]
 
 end CPolynomial
