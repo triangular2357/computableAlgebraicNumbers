@@ -1,0 +1,42 @@
+Me:
+    I have an Option of some Type in the Lean Programming Language how can I make two section of code handling None and some while having a prof for the option being some in the some part
+
+AI:
+    [...]
+    Using a Dependent Match
+    The match expression allows you to bind a proof (hypothesis) that the discriminant matches the pattern in each branch. 
+    lean
+    def handleOption (opt : Option α) : String :=
+    match h : opt with
+    | some val => 
+        -- 'h' is a proof that 'opt = some val'
+        "It's some value"
+    | none => 
+        -- 'h' is a proof that 'opt = none'
+        "It's none"
+    In this syntax, h : opt = some val is automatically added to your context within the some branch. 
+    [...]
+
+Me:
+    what if I don't want a big local function and just unwrap one option
+
+AI:
+    [...]
+    def unwrapDirect (opt : Option Int) : Int :=
+    -- 'h' is a proof of type 'opt.isSome = true'
+    if h : opt.isSome then
+        -- 'opt.get h' uses the proof to safely extract the value
+        let val := opt.get h
+        val + 10
+    else
+        0
+    [...]
+    example (opt : Option Int) : Int := by
+    if h : opt.isSome then
+        let val := opt.get h
+        exact val + 1
+    else
+        exact 0
+    [...]
+    let val := match opt with | some v => v | none => 0
+    [...]

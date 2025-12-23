@@ -60,6 +60,11 @@ def list_mul (R : Type*) [CommSemiring R] : List R → List R → List R
   | []     , _  => []
   | a :: as, bs => list_add R (list_smul R a bs) (0 :: list_mul R as bs)
 
+def list_sub (R : Type*) [CommRing R] : List R → List R → List R
+  | []     , bs      => list_smul R (-1) bs
+  | as     , []      => as
+  | a :: as, b :: bs => (a-b) :: (list_sub R as bs)
+
 def mul {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : CPoly R :=
   removeTailingZeros (list_mul R a.coefs b.coefs)
 
@@ -99,7 +104,14 @@ def ℤnormalize (i : List ℤ):List ℤ :=
 def toNormℤPoly (i : List ℤ):CPoly ℤ:=
   removeTailingZeros (ℤnormalize i)
 
-def ℚnormalize (i : List ℚ):List ℚ := ℚdiv (i.getLastD 1) i
+def ℚnormalize (i : List ℚ):List ℚ :=
+    let i' := (removeTailingZeros i).coefs --maybe make a new function only on lists?
+  --last element must not be zero otherwise it breaks because then getLastD returns 0
+  ℚdiv (i'.getLastD 1) i'
+
+private def _ℚrevNorm (i : List ℚ):List ℚ :=
+  if (i.getD 0 0) = 0 then i else
+  ℚdiv (i.getD 0 1) i
 
 def toNormℚPoly (i : List ℚ):CPoly ℚ:=
   removeTailingZeros (ℚnormalize i)
@@ -115,6 +127,55 @@ def ℚℤconvert (i : List ℚ) : List ℤ :=
   _ℚℤmulConvert (ℚlcd i) i
 
 
+-- unsafe because I still need to show termination
+-- maximum of M.map (fun l ↦ l.length) should work
+-- TODO clean up or remove the option unwraping
+-- Maybe rewrite with arrays for performance (its really slow for some reason)
+-- does gaussian elimination
+private unsafe def _reducedRowEchelonForm (M : List (List ℚ)) :List (List ℚ) :=
+  let M := M.map (_ℚrevNorm)
+  let i := M.findFinIdx? (fun l ↦ ¬( l.getD 0 0 = 0))
+  if h : i.isSome then
+    let i := i.get h
+    --make sure the only non zero in the first column is a one in row i
+    --we move row i up at the end maybe we can already do this here
+    --(if we use arrays there is array.swap)
+    let M'' := M.mapIdx (fun idx l ↦
+      if idx = i then l else
+      if l.getD 0 0 = 0 then l else
+      list_sub ℚ l M[i]!
+    )
+    let stay := M''.find? (fun l ↦ ¬( l.getD 0 0 = 0)) --should only contain the i's row
+    let smaller := (M''.filter (fun l ↦ l.getD 0 0 = 0)).map ( --should contain everything else
+      fun l => match l with | [] => [] | _ :: qs => qs) -- remove first column
+    let processedSmaller := _reducedRowEchelonForm smaller
+    let processedSmallerWithLeadingZeros :=
+      processedSmaller.map (fun l ↦ 0::l)
+    if h' : stay.isSome then
+      let first := processedSmallerWithLeadingZeros.find? ⊤
+      if h'' : first.isSome then
+        let q:ℚ := (stay.get h').getD 1 0 -- get second index to make it zero
+        list_sub ℚ (stay.get h') (list_smul ℚ q (first.get h'')) :: processedSmallerWithLeadingZeros
+      else
+        stay.get h' :: processedSmallerWithLeadingZeros
+    else
+      processedSmallerWithLeadingZeros
+  else
+    M
+
+unsafe def solve (M : List (List ℚ)) :List ℚ :=
+  let solvedM := _reducedRowEchelonForm M
+  let max_length := (solvedM.map (fun l ↦ l.length)).max?
+  if h : max_length.isSome then
+    ((Array.range ((max_length.get h)-1)).map (fun i ↦ -- there is probably a nicer way to do this
+      let e := solvedM.find? (fun l ↦ (¬ ((l.getD i 0)=0)))
+      if h : e.isSome then
+        (e.get h).getLastD 0
+      else
+        0
+    )).toList
+  else
+    []
 
 
 #eval list_mul ℤ [1]           [3]
@@ -128,6 +189,19 @@ def ℚℤconvert (i : List ℚ) : List ℤ :=
 #eval list_eval ℤ [0,6] 2
 #eval list_eval ℤ [0,0,0,0,1] 2
 
+#eval _reducedRowEchelonForm [[1,1]]
+#eval _reducedRowEchelonForm [[2,1]]
+#eval _reducedRowEchelonForm [[0,1]]
+#eval _reducedRowEchelonForm [[2,1,3],[1,2,3]]
+#eval _reducedRowEchelonForm [[2,1,3],[2,4,6]]
+#eval _reducedRowEchelonForm [[2,4,6],[2,1,3]]
+#eval _reducedRowEchelonForm [[2,4,12],[2,1,6]]
+#eval _reducedRowEchelonForm [[0,1,3],[1,2,4]]
+#eval _reducedRowEchelonForm [[0,1,3],[123,-2,5]]
+#eval solve [[2,4,6],[2,1,3]]
+#eval solve [[2,4,12],[2,1,6]]
+#eval solve [[0,1,3],[1,2,4]]
+#eval solve []
 #eval ℤdiv   2 [4,2,0,-1,1,4]
 #eval ℤnormalize   [4,2,0,4]
 #eval ℤnormalize   [4,2,0]
