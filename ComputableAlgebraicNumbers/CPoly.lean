@@ -47,6 +47,18 @@ def smul (R : Type*) [Ring R] : R → List R → List R
   | _,      [] => []
   | r, a :: as => (r*a) :: (smul R r as)
 
+def mul (R : Type*) [Ring R] : List R → List R → List R
+  | _      , []       => []
+  | []     , _        => []
+  | a :: [], b :: []  => [(a*b)]
+  | a :: as, b :: bs  => (a*b) :: add R (add R (smul R b as) (smul R a bs)) (0 :: mul R as bs)
+
+ --semiring so Polys in ℕ work idk if this is useful
+def eval {R : Type*} [Semiring R] : List R → R → R
+  | [] => 0
+  | a :: as => fun r ↦ a + r * eval as r
+
+
 def ℤdiv : ℤ  → List ℤ → List ℤ
   | _,      [] => []
   | r, a :: as => (a/r) :: (ℤdiv r as)
@@ -54,12 +66,6 @@ def ℤdiv : ℤ  → List ℤ → List ℤ
 def ℚdiv : ℚ  → List ℚ → List ℚ
   | _,      [] => []
   | r, a :: as => (a / r) :: (ℚdiv r as)
-
-def mul (R : Type*) [Ring R] : List R → List R → List R
-  | _      , []       => []
-  | []     , _        => []
-  | a :: [], b :: []  => [(a*b)]
-  | a :: as, b :: bs  => (a*b) :: add R (add R (smul R b as) (smul R a bs)) (0 :: mul R as bs)
 
 def ℤgcd : List ℤ → ℕ
   | [] => 0
@@ -73,10 +79,16 @@ def ℚlcd : List ℚ → ℕ --least common denominator
 
 def ℤnormalize (i : List ℤ):List ℤ :=
   let i' := (removeTailingZeros i).coefs --maybe make a new function only on lists?
-  --last element must not be zero otherwise it breaks
+  --last element must not be zero otherwise it breaks because then getLastD returns 0
   ℤdiv ((i'.getLastD 1).sign * ℤgcd i') i'
 
+def toNormℤPoly (i : List ℤ):CPoly ℤ:=
+  removeTailingZeros (ℤnormalize i)
+
 def ℚnormalize (i : List ℚ):List ℚ := ℚdiv (i.getLastD 1) i
+
+def toNormℚPoly (i : List ℚ):CPoly ℚ:=
+  removeTailingZeros (ℚnormalize i)
 
 def ℤℚconvert : List ℤ → List ℚ
   | [] => []
@@ -88,12 +100,20 @@ def ℚℤconvert (i : List ℚ) : List ℤ :=
     | x,z::zs=> (z*x).num / (z*x).den  :: _ℚℤmulConvert x zs
   _ℚℤmulConvert (ℚlcd i) i
 
+
+
+
 #eval mul ℤ [1]           [3]
 #eval mul ℤ [1,4]         [3]
 #eval mul ℤ [1,4]       [3,4]
 #eval mul ℤ [1,2,3,4]   [5,7]
 #eval add ℤ [1,4]         [3]
 #eval smul ℤ 2          [1,4]
+#eval eval [4,2] 2
+#eval eval [2,3,-1] (-1)
+#eval eval [0,6] 2
+#eval eval [0,0,0,0,1] 2
+
 #eval ℤdiv   2 [4,2,0,-1,1,4]
 #eval ℤnormalize   [4,2,0,4]
 #eval ℤnormalize   [4,2,0]
