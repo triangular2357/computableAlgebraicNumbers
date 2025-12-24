@@ -117,9 +117,9 @@ lemma add_assoc {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : CPoly R) :
   sorry
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddSemigroup (CPoly R) := ⟨add_assoc⟩
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : Zero (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddZero (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddZeroClass (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : Zero (CPoly R) := ⟨toCPoly []⟩
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddZero (CPoly R) := ⟨⟩
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddZeroClass (CPoly R) := ⟨sorry,sorry⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddMonoid (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddCommMagma (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddCommSemigroup (CPoly R) := sorry
@@ -131,15 +131,16 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalNonAssocSemirin
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Semigroup (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : SemigroupWithZero (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalSemiring (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : One (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOne (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOneClass (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : One (CPoly R) := ⟨toCPoly [1]⟩
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOne (CPoly R) := ⟨⟩
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOneClass (CPoly R) := ⟨sorry,sorry⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroOneClass (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonAssocSemiring (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Monoid (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : SemigroupWithZero (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : SemigroupWithZero (CPoly R) := sorry-- TODO why a second time? maybe remove this
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MonoidWithZero (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Semiring (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommSemiring (CPoly R) := sorry
 
 
 def ℤdiv : ℤ  → List ℤ → List ℤ
@@ -161,7 +162,7 @@ def ℚlcd : List ℚ → ℕ --least common denominator
   | r::rs=> r.den.lcm (ℚlcd rs)
 
 def ℤnormalize (i : List ℤ):List ℤ :=
-  let i' := (toCPoly i).coefs --maybe make a new function only on lists?
+  let i' := removeTailingZeros i
   --last element must not be zero otherwise it breaks because then getLastD returns 0
   ℤdiv ((i'.getLastD 1).sign * ℤgcd i') i'
 
@@ -169,7 +170,7 @@ def toNormℤPoly (i : List ℤ):CPoly ℤ:=
   toCPoly (ℤnormalize i)
 
 def ℚnormalize (i : List ℚ):List ℚ :=
-    let i' := (toCPoly i).coefs --maybe make a new function only on lists?
+    let i' := removeTailingZeros i
   --last element must not be zero otherwise it breaks because then getLastD returns 0
   ℚdiv (i'.getLastD 1) i'
 
