@@ -92,7 +92,80 @@ private lemma _removeLeadingZeros_removeLeadingZeros {R : Type*} [DecidableEq R]
   {l : List R} : _removeLeadingZeros (_removeLeadingZeros l) = _removeLeadingZeros l := by
   rw [←l.reverse_reverse]
   refine List.reverse_inj.1 (Eq.trans ?_ removeTailingZeros_removeTailingZeros)
-  simp
+  simp only [List.reverse_reverse, removeTailingZeros]
+
+@[simp]
+lemma removeTailingZeros_nil {R : Type*} [DecidableEq R] [CommSemiring R]
+  : removeTailingZeros (R := R) [] = [] := rfl
+
+private lemma _removeLeadingZeros_append_ne_zero {R : Type*} [DecidableEq R] [CommSemiring R]
+  {a : R} {as : List R} (h : a ≠ 0)
+  : _removeLeadingZeros (as ++ [a]) = _removeLeadingZeros as ++ [a] := by
+  induction as with
+  | nil => simp only [List.nil_append, _removeLeadingZeros_cons, h, ↓reduceIte,
+    _removeLeadingZeros_nil]
+  | cons head tail ih =>
+  by_cases h' : head = 0
+  · simp only [h', List.cons_append, _removeLeadingZeros_cons, ↓reduceIte, ih]
+  · simp only [List.cons_append, _removeLeadingZeros_cons, h', ↓reduceIte]
+
+@[simp]
+lemma removeTailingZeros_cons_of_ne_zero {R : Type*} [DecidableEq R] [CommSemiring R]
+  {a : R} {as : List R} (h : a ≠ 0)
+  : removeTailingZeros (a :: as) = a :: removeTailingZeros as := by
+  simp only [removeTailingZeros, List.reverse_cons, List.reverse_eq_cons_iff, List.reverse_reverse]
+  exact _removeLeadingZeros_append_ne_zero h
+
+private lemma _removeLeadingZeros_append_zero_ite {R : Type*} [DecidableEq R] [CommSemiring R]
+  {as : List R} : _removeLeadingZeros (as ++ [0]) =
+    if _removeLeadingZeros as = []
+    then []
+    else _removeLeadingZeros as ++ [0]
+  := by
+  induction as with
+  | nil => simp only [List.nil_append, _removeLeadingZeros_cons, ↓reduceIte,
+    _removeLeadingZeros_nil]
+  | cons head tail ih =>
+    by_cases h₁ : _removeLeadingZeros tail = []
+    · rw [if_pos h₁] at ih
+      by_cases h₂ : head = 0
+      · simp only [h₂, List.cons_append, _removeLeadingZeros_cons, ↓reduceIte, ih, h₁]
+      · simp only [List.cons_append, _removeLeadingZeros_cons, h₂, ↓reduceIte, reduceCtorEq]
+    · rw [if_neg h₁] at ih
+      by_cases h₂ : head = 0
+      · simp only [h₂, List.cons_append, _removeLeadingZeros_cons, ↓reduceIte, ih, h₁]
+      · simp only [List.cons_append, _removeLeadingZeros_cons, h₂, ↓reduceIte, reduceCtorEq]
+
+@[simp]
+lemma removeTailingZeros_zero_cons_ite {R : Type*} [DecidableEq R] [CommSemiring R]
+  {as : List R} : removeTailingZeros (0 :: as) =
+    if removeTailingZeros as = []
+    then []
+    else 0 :: removeTailingZeros as
+  := by
+  have h₁ : removeTailingZeros (0 :: as) = (_removeLeadingZeros (as.reverse ++ [0])).reverse := by
+    simp only [removeTailingZeros, List.reverse_cons]
+  have h₂ : removeTailingZeros as = (_removeLeadingZeros as.reverse).reverse := by
+    simp only [removeTailingZeros]
+  have h₃ : 0 :: removeTailingZeros as = (_removeLeadingZeros as.reverse ++ [0]).reverse := by
+    simp only [removeTailingZeros, List.reverse_append, List.reverse_cons, List.reverse_nil,
+      List.nil_append, List.cons_append]
+  rw [h₃, h₂, h₁]
+  apply List.reverse_injective
+  rw [apply_ite List.reverse]
+  simp only [List.reverse_reverse, List.reverse_eq_nil_iff, List.reverse_nil]
+  exact _removeLeadingZeros_append_zero_ite
+
+@[simp]
+lemma cons_coh {R : Type*} [DecidableEq R] [CommSemiring R]
+  {a b : R} {as bs : List R} (h : a = b) (hs : removeTailingZeros as = removeTailingZeros bs)
+  : removeTailingZeros (a :: as) = removeTailingZeros (b :: bs) := by
+  by_cases h0 : a = 0
+  · subst b a
+    simp only [removeTailingZeros_zero_cons_ite]
+    congr
+  · rw [removeTailingZeros_cons_of_ne_zero h0, removeTailingZeros_cons_of_ne_zero (h ▸ h0)]
+    congr
 
 def list_add (R : Type*) [CommSemiring R] : List R → List R → List R
   | []     , bs      => bs
@@ -111,18 +184,51 @@ lemma cons_list_add_cons {R : Type*} [CommSemiring R] {a b : R} {as bs : List R}
   : list_add R (a :: as) (b :: bs) = (a + b) :: (list_add R as bs) := rfl
 
 @[simp]
-lemma list_add_coh {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
-  : list_add R (removeTailingZeros a) (removeTailingZeros b)
-  = removeTailingZeros (list_add R a b) := by
+lemma list_add_comm {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
+  : list_add R a b = list_add R b a := by
   induction a generalizing b with
-  | nil => simp only [removeTailingZeros, List.reverse_nil, _removeLeadingZeros_nil, nil_list_add]
+  | nil => simp only [nil_list_add, list_add_nil]
   | cons a0 a' ih =>
   induction b with
-  | nil => simp only [removeTailingZeros, List.reverse_cons, List.reverse_nil,
-    _removeLeadingZeros_nil, list_add_nil]
+  | nil => simp only [list_add_nil, nil_list_add]
   | cons b0 b' _ =>
-  simp only [cons_list_add_cons]
-  admit -- we need more lemmas about `removeTailingZeros`
+  simp only [cons_list_add_cons, List.cons.injEq]
+  use add_comm a0 b0
+  apply ih
+
+@[simp]
+lemma list_add_coh_left {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
+  : removeTailingZeros (list_add R (removeTailingZeros a) b)
+  = removeTailingZeros (list_add R a b) := by
+  induction a generalizing b with
+  | nil => simp only [removeTailingZeros_nil, nil_list_add]
+  | cons a0 as ih =>
+  induction b with
+  | nil => rw [list_add_nil, list_add_nil, removeTailingZeros_removeTailingZeros]
+  | cons b0 bs _ =>
+  rw [cons_list_add_cons]
+  by_cases ha : a0 = 0
+  · rw [ha, zero_add, removeTailingZeros_zero_cons_ite]
+    by_cases h : removeTailingZeros as = []
+    · rw [if_pos h, nil_list_add]
+      apply cons_coh rfl
+      rw [←ih bs, h, nil_list_add]
+    · rw [if_neg h, cons_list_add_cons]
+      exact cons_coh (zero_add b0) (ih bs)
+  · rw [removeTailingZeros_cons_of_ne_zero ha, cons_list_add_cons]
+    exact cons_coh rfl (ih bs)
+
+@[simp]
+lemma list_add_coh_right {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
+  : removeTailingZeros (list_add R a (removeTailingZeros b))
+  = removeTailingZeros (list_add R a b) := by
+  rw [list_add_comm, list_add_coh_left, list_add_comm]
+
+@[simp]
+lemma list_add_coh {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
+  : removeTailingZeros (list_add R (removeTailingZeros a) (removeTailingZeros b))
+  = removeTailingZeros (list_add R a b) := by
+  rw[list_add_coh_left, list_add_coh_right]
 
 @[simp]
 def add {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : CPoly R :=
@@ -130,7 +236,7 @@ def add {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : CPoly R :
 
 lemma add_coh {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
   : add (toCPoly a) (toCPoly b) = toCPoly (list_add R a b) := by
-  simp only [add, toCPoly, list_add_coh, removeTailingZeros_removeTailingZeros]
+  simp only [add, toCPoly, list_add_coh]
 
 def list_smul (R : Type*) [CommSemiring R] : R → List R → List R
   | _,      [] => []
@@ -176,16 +282,13 @@ lemma list_add_assoc {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : List 
   induction c with
   | nil => simp only [cons_list_add_cons, list_add_nil]
   | cons c0 c' _ =>
-  simp
+  simp only [cons_list_add_cons, List.cons.injEq]
   use add_assoc a0 b0 c0
   rw [ih]
 
 lemma add_assoc {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : CPoly R)
   : a + b + c = a + (b + c) := by
-  simp only [add_def, add, toCPoly, mk.injEq]
-  repeat rw [←list_add_coh]
-  simp only [removeTailingZeros, List.reverse_reverse, _removeLeadingZeros_removeLeadingZeros,
-    list_add_assoc]
+  simp only [add_def, add, toCPoly, list_add_coh_left, list_add_coh_right, list_add_assoc]
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddSemigroup (CPoly R) := ⟨add_assoc⟩
 
@@ -213,19 +316,6 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddZeroClass (CPoly R)
   := ⟨zero_add, add_zero⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddMonoid (CPoly R) where
   nsmul := nsmulRec
-
-@[simp]
-lemma list_add_comm {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
-  : list_add R a b = list_add R b a := by
-  induction a generalizing b with
-  | nil => simp only [nil_list_add, list_add_nil]
-  | cons a0 a' ih =>
-  induction b with
-  | nil => simp only [list_add_nil, nil_list_add]
-  | cons b0 b' _ =>
-  simp only [cons_list_add_cons, List.cons.injEq]
-  use add_comm a0 b0
-  apply ih
 
 lemma add_comm {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R)
   : a + b = b + a := by simp only [add_def, add, toCPoly, removeTailingZeros, list_add_comm]
@@ -261,6 +351,32 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : Monoid (CPoly R) := sorr
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MonoidWithZero (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Semiring (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommSemiring (CPoly R) := sorry
+
+#exit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def ℤdiv : ℤ  → List ℤ → List ℤ
