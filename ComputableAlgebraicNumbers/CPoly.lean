@@ -328,13 +328,6 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : Mul (CPoly R) := ⟨mul�
 @[simp]
 lemma mul_def {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : a * b = mul a b := rfl
 
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : Distrib (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroClass (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalNonAssocSemiring (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : Semigroup (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : SemigroupWithZero (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalSemiring (CPoly R) := sorry
-
 @[simp]
 def one {R : Type*} [DecidableEq R] [CommSemiring R] : CPoly R := toCPoly [1]
 
@@ -346,38 +339,17 @@ lemma one_def {R : Type*} [DecidableEq R] [CommSemiring R] : (1 : CPoly R) = one
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOne (CPoly R) := ⟨⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOneClass (CPoly R) := ⟨sorry,sorry⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroOneClass (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : Distrib (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroClass (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalNonAssocSemiring (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : Semigroup (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : SemigroupWithZero (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalSemiring (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonAssocSemiring (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Monoid (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MonoidWithZero (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Semiring (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommSemiring (CPoly R) := sorry
-
-#exit
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 def ℤdiv : ℤ  → List ℤ → List ℤ
   | _,      [] => []
