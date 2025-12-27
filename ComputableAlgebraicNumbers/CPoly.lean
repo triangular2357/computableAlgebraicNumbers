@@ -157,15 +157,23 @@ lemma removeTailingZeros_zero_cons_ite {R : Type*} [DecidableEq R] [CommSemiring
   exact _removeLeadingZeros_append_zero_ite
 
 @[simp]
-lemma cons_coh {R : Type*} [DecidableEq R] [CommSemiring R]
+lemma removeTailingZeros_zero_cons_ite_of_removeTailingZeros
+  {R : Type*} [DecidableEq R] [CommSemiring R]
+  {as : List R} (h : removeTailingZeros as = []) : removeTailingZeros (0 :: as) = [] := by
+  rw [removeTailingZeros_zero_cons_ite, if_pos h]
+
+@[simp]
+lemma cons_coh {R : Type*} [DecidableEq R] [CommSemiring R] {a : R} {as : List R}
+  : removeTailingZeros (a :: removeTailingZeros as) = removeTailingZeros (a :: as) := by
+  by_cases h : a = 0
+  · simp only [h, removeTailingZeros_zero_cons_ite, removeTailingZeros_removeTailingZeros]
+  · simp only [removeTailingZeros_cons_of_ne_zero h, removeTailingZeros_removeTailingZeros]
+
+@[simp]
+lemma cons_coh' {R : Type*} [DecidableEq R] [CommSemiring R]
   {a b : R} {as bs : List R} (h : a = b) (hs : removeTailingZeros as = removeTailingZeros bs)
   : removeTailingZeros (a :: as) = removeTailingZeros (b :: bs) := by
-  by_cases h0 : a = 0
-  · subst b a
-    simp only [removeTailingZeros_zero_cons_ite]
-    congr
-  · rw [removeTailingZeros_cons_of_ne_zero h0, removeTailingZeros_cons_of_ne_zero (h ▸ h0)]
-    congr
+  rw [h, ←cons_coh, hs, cons_coh]
 
 def list_add (R : Type*) [CommSemiring R] : List R → List R → List R
   | []     , bs      => bs
@@ -211,12 +219,12 @@ lemma list_add_coh_left {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List
   · rw [ha, zero_add, removeTailingZeros_zero_cons_ite]
     by_cases h : removeTailingZeros as = []
     · rw [if_pos h, nil_list_add]
-      apply cons_coh rfl
+      apply cons_coh' rfl
       rw [←ih bs, h, nil_list_add]
     · rw [if_neg h, cons_list_add_cons]
-      exact cons_coh (zero_add b0) (ih bs)
+      exact cons_coh' (zero_add b0) (ih bs)
   · rw [removeTailingZeros_cons_of_ne_zero ha, cons_list_add_cons]
-    exact cons_coh rfl (ih bs)
+    exact cons_coh' rfl (ih bs)
 
 @[simp]
 lemma list_add_coh_right {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
@@ -228,47 +236,7 @@ lemma list_add_coh_right {R : Type*} [DecidableEq R] [CommSemiring R] (a b : Lis
 lemma list_add_coh {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
   : removeTailingZeros (list_add R (removeTailingZeros a) (removeTailingZeros b))
   = removeTailingZeros (list_add R a b) := by
-  rw[list_add_coh_left, list_add_coh_right]
-
-@[simp]
-def add {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : CPoly R :=
-  toCPoly (list_add R a.coefs b.coefs)
-
-lemma add_coh {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
-  : add (toCPoly a) (toCPoly b) = toCPoly (list_add R a b) := by
-  simp only [add, toCPoly, list_add_coh]
-
-def list_smul (R : Type*) [CommSemiring R] : R → List R → List R
-  | _,      [] => []
-  | r, a :: as => (r*a) :: (list_smul R r as)
-
-def smul {R : Type*} [DecidableEq R] [CommSemiring R] (a : R) (b : CPoly R) : CPoly R :=
-  toCPoly (list_smul R a b.coefs)
-
-def list_mul (R : Type*) [CommSemiring R] : List R → List R → List R
-  | []     , _  => []
-  | a :: as, bs => list_add R (list_smul R a bs) (0 :: list_mul R as bs)
-
-def list_sub (R : Type*) [CommRing R] : List R → List R → List R
-  | []     , bs      => list_smul R (-1) bs
-  | as     , []      => as
-  | a :: as, b :: bs => (a-b) :: (list_sub R as bs)
-
-def mul {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : CPoly R :=
-  toCPoly (list_mul R a.coefs b.coefs)
-
- --semiring so Polys in ℕ work idk if this is useful
-def list_eval (R : Type*) [CommSemiring R] : List R → R → R
-  | [] => 0
-  | a :: as => fun r ↦ a + r * list_eval R as r
-
-def eval {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) (b : R) : R :=
-  list_eval R a.coefs b
-
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : Add (CPoly R) := ⟨add⟩
-
-@[simp]
-lemma add_def {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : a + b = add a b := rfl
+  rw [list_add_coh_left, list_add_coh_right]
 
 @[simp]
 lemma list_add_assoc {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : List R)
@@ -285,6 +253,160 @@ lemma list_add_assoc {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : List 
   simp only [cons_list_add_cons, List.cons.injEq]
   use add_assoc a0 b0 c0
   rw [ih]
+
+@[simp]
+def add {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : CPoly R :=
+  toCPoly (list_add R a.coefs b.coefs)
+
+lemma add_coh {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
+  : add (toCPoly a) (toCPoly b) = toCPoly (list_add R a b) := by
+  simp only [add, toCPoly, list_add_coh]
+
+def list_smul (R : Type*) [CommSemiring R] : R → List R → List R
+  | _,      [] => []
+  | r, a :: as => (r*a) :: (list_smul R r as)
+
+@[simp]
+lemma list_smul_nil {R : Type*} [CommSemiring R] {a : R}
+  : list_smul R a [] = [] := rfl
+
+@[simp]
+lemma list_smul_cons {R : Type*} [CommSemiring R] {a b : R} {bs : List R}
+  : list_smul R a (b :: bs) = a * b :: list_smul R a bs := rfl
+
+/-
+lemma removeTailingZeros_list_smul_eq_nil_of_removeTailingZeros_eq_nil {R : Type*}
+  [DecidableEq R] [CommSemiring R] {a : R} {as : List R} (h : removeTailingZeros as = [])
+  : removeTailingZeros (list_smul R a as) = [] := by
+  induction as with
+  | nil => rfl
+  | cons head tail ih =>
+    by_cases h' : head = 0
+    · rw [h', removeTailingZeros_zero_cons_ite] at h
+      rw [list_smul_cons, mul_eq_zero_of_right _ h',
+        removeTailingZeros_zero_cons_ite, if_pos (ih ?_)]
+      rwa [Ne.ite_eq_left_iff (List.cons_ne_nil _ _).symm] at h
+    · rw [removeTailingZeros_cons_of_ne_zero h'] at h
+      exfalso
+      exact List.cons_ne_nil _ _ h
+-/
+
+@[simp]
+lemma list_smul_coh {R : Type*} [DecidableEq R] [CommSemiring R] {a : R} {as : List R}
+  : removeTailingZeros (list_smul R a (removeTailingZeros as))
+  = removeTailingZeros (list_smul R a as) := by
+  induction as with
+  | nil => rw [removeTailingZeros_nil]
+  | cons head tail ih =>
+    by_cases h : head = 0
+    · rw [h, removeTailingZeros_zero_cons_ite]
+      by_cases h' : removeTailingZeros tail = []
+      · rw [if_pos h', list_smul_cons, mul_zero, removeTailingZeros_zero_cons_ite,
+          ←ih, h']
+        rfl
+      · rw [if_neg h', list_smul_cons, mul_zero, list_smul_cons, mul_zero, cons_coh' rfl ih]
+    · rw [removeTailingZeros_cons_of_ne_zero h, list_smul_cons, list_smul_cons, cons_coh' rfl ih]
+
+@[simp]
+lemma zero_list_smul_coh {R : Type*} [DecidableEq R] [CommSemiring R] {a : List R}
+  : removeTailingZeros (list_smul R 0 a) = [] := by
+  induction a with
+  | nil => rfl
+  | cons head tail ih =>
+    rw [list_smul_cons, ←cons_coh, ih, zero_mul, removeTailingZeros_zero_cons_ite]
+    rfl
+
+def smul {R : Type*} [DecidableEq R] [CommSemiring R] (a : R) (b : CPoly R) : CPoly R :=
+  toCPoly (list_smul R a b.coefs)
+
+def list_mul (R : Type*) [CommSemiring R] : List R → List R → List R
+  | []     , _  => []
+  | a :: as, bs => list_add R (list_smul R a bs) (0 :: list_mul R as bs)
+
+@[simp]
+lemma nil_list_mul {R : Type*} [CommSemiring R] {a : List R} : list_mul R [] a = [] := rfl
+
+@[simp]
+lemma cons_list_mul {R : Type*} [CommSemiring R] {a : R} {as bs : List R}
+  : list_mul R (a :: as) bs = list_add R (list_smul R a bs) (0 :: list_mul R as bs) := rfl
+
+@[simp]
+lemma list_mul_nil_coh {R : Type*} [CommSemiring R] [DecidableEq R] {a : List R}
+  : removeTailingZeros (list_mul R a []) = [] := by
+  induction a with
+  | nil => rfl
+  | cons head tail ih =>
+    rw [cons_list_mul, list_smul_nil, nil_list_add, removeTailingZeros_zero_cons_ite, if_pos ih]
+
+@[simp]
+lemma list_mul_cons_coh {R : Type*} [CommSemiring R] [DecidableEq R] {b : R} {as bs : List R}
+  : removeTailingZeros (list_mul R as (b :: bs))
+  = removeTailingZeros (list_add R (0 :: list_mul R as bs) (list_smul R b as)) := by
+  induction as with
+  | nil =>
+    rw [nil_list_mul, nil_list_mul, list_smul_nil, list_add_nil,
+      removeTailingZeros_zero_cons_ite, if_pos] <;> rfl
+  | cons head tail ih =>
+    rw [cons_list_mul, list_smul_cons, cons_list_add_cons, list_smul_cons, cons_list_mul,
+      cons_list_add_cons, list_add_assoc]
+    apply cons_coh' (by ring)
+    rw [←list_add_coh_right, ih, list_add_coh_right]
+
+@[simp]
+lemma list_mul_coh_left {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
+  : removeTailingZeros (list_mul R (removeTailingZeros a) b)
+  = removeTailingZeros (list_mul R a b) := by
+  induction a with
+  | nil => rfl
+  | cons a0 as ih =>
+  by_cases h : a0 = 0
+  · subst a0
+    rw [removeTailingZeros_zero_cons_ite]
+    by_cases h' : removeTailingZeros as = []
+    · rw [if_pos h', nil_list_mul, cons_list_mul, ←list_add_coh, zero_list_smul_coh, nil_list_add,
+      ←cons_coh, ←ih, h', cons_coh, removeTailingZeros_zero_cons_ite_of_removeTailingZeros rfl]
+    · rw [if_neg h', cons_list_mul, ←list_add_coh_left, zero_list_smul_coh, nil_list_add, ←cons_coh,
+        ih, cons_list_mul, ←list_add_coh_left, zero_list_smul_coh, nil_list_add, cons_coh]
+  · rw [removeTailingZeros_cons_of_ne_zero h, cons_list_mul, ←list_add_coh_right, ←cons_coh, ih,
+      cons_coh, list_add_coh_right, cons_list_mul]
+
+@[simp]
+lemma list_mul_coh_right {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
+  : removeTailingZeros (list_mul R a (removeTailingZeros b))
+  = removeTailingZeros (list_mul R a b) := by
+  induction a with
+  | nil => rfl
+  | cons head tail ih =>
+    rw [cons_list_mul, ←list_add_coh, list_smul_coh, cons_list_mul]
+    nth_rw 2 [←list_add_coh]
+    rw [cons_coh' rfl ih]
+
+@[simp]
+lemma list_mul_coh {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
+  : removeTailingZeros (list_mul R (removeTailingZeros a) (removeTailingZeros b))
+  = removeTailingZeros (list_mul R a b) := by
+  rw [list_mul_coh_left, list_mul_coh_right]
+
+def mul {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : CPoly R :=
+  toCPoly (list_mul R a.coefs b.coefs)
+
+def list_sub (R : Type*) [CommRing R] : List R → List R → List R
+  | []     , bs      => list_smul R (-1) bs
+  | as     , []      => as
+  | a :: as, b :: bs => (a-b) :: (list_sub R as bs)
+
+ --semiring so Polys in ℕ work idk if this is useful
+def list_eval (R : Type*) [CommSemiring R] : List R → R → R
+  | [] => 0
+  | a :: as => fun r ↦ a + r * list_eval R as r
+
+def eval {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) (b : R) : R :=
+  list_eval R a.coefs b
+
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : Add (CPoly R) := ⟨add⟩
+
+@[simp]
+lemma add_def {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : a + b = add a b := rfl
 
 lemma add_assoc {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : CPoly R)
   : a + b + c = a + (b + c) := by
@@ -318,7 +440,7 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddMonoid (CPoly R) wher
   nsmul := nsmulRec
 
 lemma add_comm {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R)
-  : a + b = b + a := by simp only [add_def, add, toCPoly, removeTailingZeros, list_add_comm]
+  : a + b = b + a := by simp only [add_def, add, toCPoly, list_add_comm]
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddCommMagma (CPoly R) := ⟨add_comm⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddCommSemigroup (CPoly R) where
@@ -327,6 +449,9 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : Mul (CPoly R) := ⟨mul�
 
 @[simp]
 lemma mul_def {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : a * b = mul a b := rfl
+
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : Semigroup (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : SemigroupWithZero (CPoly R) := sorry
 
 @[simp]
 def one {R : Type*} [DecidableEq R] [CommSemiring R] : CPoly R := toCPoly [1]
@@ -337,19 +462,21 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : One (CPoly R) := ⟨one�
 lemma one_def {R : Type*} [DecidableEq R] [CommSemiring R] : (1 : CPoly R) = one := rfl
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOne (CPoly R) := ⟨⟩
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOneClass (CPoly R) := ⟨sorry,sorry⟩
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroOneClass (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : Distrib (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroClass (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalNonAssocSemiring (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : Semigroup (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : SemigroupWithZero (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalSemiring (CPoly R) := sorry
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonAssocSemiring (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOneClass (CPoly R) := ⟨sorry, sorry⟩
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroClass (CPoly R) := ⟨sorry, sorry⟩
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroOneClass (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Monoid (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MonoidWithZero (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommMagma (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommSemigroup (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommMonoid (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : Distrib (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalNonAssocSemiring (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalSemiring (CPoly R) := sorry
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonAssocSemiring (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Semiring (CPoly R) := sorry
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommSemiring (CPoly R) := sorry
+
 
 def ℤdiv : ℤ  → List ℤ → List ℤ
   | _,      [] => []
