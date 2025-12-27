@@ -161,7 +161,7 @@ lemma removeTailingZeros_zero_cons_ite {R : Type*} [DecidableEq R] [CommSemiring
   exact _removeLeadingZeros_append_zero_ite
 
 @[simp]
-lemma removeTailingZeros_zero_cons_ite_of_removeTailingZeros
+lemma removeTailingZeros_zero_cons_of_removeTailingZeros
   {R : Type*} [DecidableEq R] [CommSemiring R]
   {as : List R} (h : removeTailingZeros as = []) : removeTailingZeros (0 :: as) = [] := by
   rw [removeTailingZeros_zero_cons_ite, if_pos h]
@@ -312,6 +312,15 @@ lemma list_smul_coh {R : Type*} [DecidableEq R] [CommSemiring R] {a : R} {as : L
       · rw [if_neg h', list_smul_cons, mul_zero, list_smul_cons, mul_zero, cons_coh' rfl ih]
     · rw [removeTailingZeros_cons_of_ne_zero h, list_smul_cons, list_smul_cons, cons_coh' rfl ih]
 
+
+@[simp]
+lemma one_list_smul {R : Type*} [DecidableEq R] [CommSemiring R] {a : List R}
+  : list_smul R 1 a = a := by
+  induction a with
+  | nil => rfl
+  | cons head tail ih => rw [list_smul_cons, one_mul, ih]
+
+
 @[simp]
 lemma zero_list_smul_coh {R : Type*} [DecidableEq R] [CommSemiring R] {a : List R}
   : removeTailingZeros (list_smul R 0 a) = [] := by
@@ -378,22 +387,13 @@ lemma list_mul_cons_coh {R : Type*} [CommSemiring R] [DecidableEq R] {b : R} {as
     rw [←list_add_coh_right, ih, list_add_coh_right]
 
 @[simp]
-lemma list_mul_coh_left {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
-  : removeTailingZeros (list_mul R (removeTailingZeros a) b)
-  = removeTailingZeros (list_mul R a b) := by
+lemma list_mul_comm_coh {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
+  : removeTailingZeros (list_mul R a b) = removeTailingZeros (list_mul R b a) := by
   induction a with
-  | nil => rfl
-  | cons a0 as ih =>
-  by_cases h : a0 = 0
-  · subst a0
-    rw [removeTailingZeros_zero_cons_ite]
-    by_cases h' : removeTailingZeros as = []
-    · rw [if_pos h', nil_list_mul, cons_list_mul, ←list_add_coh, zero_list_smul_coh, nil_list_add,
-      ←cons_coh, ←ih, h', cons_coh, removeTailingZeros_zero_cons_ite_of_removeTailingZeros rfl]
-    · rw [if_neg h', cons_list_mul, ←list_add_coh_left, zero_list_smul_coh, nil_list_add, ←cons_coh,
-        ih, cons_list_mul, ←list_add_coh_left, zero_list_smul_coh, nil_list_add, cons_coh]
-  · rw [removeTailingZeros_cons_of_ne_zero h, cons_list_mul, ←list_add_coh_right, ←cons_coh, ih,
-      cons_coh, list_add_coh_right, cons_list_mul]
+  | nil => rw [nil_list_mul, list_mul_nil_coh, removeTailingZeros_nil]
+  | cons head tail ih =>
+    rw [cons_list_mul, list_mul_cons_coh, list_add_comm, ←list_add_coh_left, ←cons_coh,
+      ih, cons_coh, list_add_coh_left]
 
 @[simp]
 lemma list_mul_coh_right {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
@@ -407,10 +407,26 @@ lemma list_mul_coh_right {R : Type*} [DecidableEq R] [CommSemiring R] (a b : Lis
     rw [cons_coh' rfl ih]
 
 @[simp]
+lemma list_mul_coh_left {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
+  : removeTailingZeros (list_mul R (removeTailingZeros a) b)
+  = removeTailingZeros (list_mul R a b) := by
+  rw [list_mul_comm_coh, list_mul_coh_right, list_mul_comm_coh]
+
+@[simp]
 lemma list_mul_coh {R : Type*} [DecidableEq R] [CommSemiring R] (a b : List R)
   : removeTailingZeros (list_mul R (removeTailingZeros a) (removeTailingZeros b))
   = removeTailingZeros (list_mul R a b) := by
   rw [list_mul_coh_left, list_mul_coh_right]
+
+@[simp]
+lemma list_mul_list_add {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : List R)
+  : list_mul R a (list_add R b c) = list_add R (list_mul R a b) (list_mul R a c) := by
+  induction a with
+  | nil => rfl
+  | cons head tail ih =>
+    rw [cons_list_mul, ih, ←add_zero 0, ←cons_list_add_cons, list_smul_list_add, list_add_assoc,
+      ←list_add_assoc (list_smul R head c), list_add_comm (list_smul R head c), list_add_assoc,
+      ←list_add_assoc, ←cons_list_mul, ←cons_list_mul]
 
 @[simp]
 lemma list_add_list_mul {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : List R)
@@ -449,6 +465,22 @@ lemma list_mul_assoc {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : List 
     congr 2
     rw [cons_list_mul, ←list_add_coh_left, zero_list_smul_coh, nil_list_add,
       ←cons_coh, list_mul_coh_left]
+
+@[simp]
+lemma singleton_list_mul_coh {R : Type*} [DecidableEq R] [CommSemiring R] (a : R) (as : List R)
+  : removeTailingZeros (list_mul R [a] as) = removeTailingZeros (list_smul R a as) := by
+  rw [cons_list_mul, ←list_add_coh_right, ←cons_coh,
+    removeTailingZeros_zero_cons_of_removeTailingZeros rfl, list_add_nil]
+
+@[simp]
+lemma list_mul_singleton {R : Type*} [DecidableEq R] [CommSemiring R] (a : R) (as : List R)
+  : list_mul R as [a] = list_smul R a as := by
+  induction as with
+  | nil => rfl
+  | cons head tail ih =>
+    rw [cons_list_mul, ih, list_smul_cons, cons_list_add_cons, list_smul_nil, nil_list_add,
+    list_smul_cons, add_zero, mul_comm]
+
 
 def list_sub (R : Type*) [CommRing R] : List R → List R → List R
   | []     , bs      => list_smul R (-1) bs
@@ -553,14 +585,38 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : One (CPoly R) := ⟨one�
 lemma one_def {R : Type*} [DecidableEq R] [CommSemiring R] : (1 : CPoly R) = one := rfl
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOne (CPoly R) := ⟨⟩
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOneClass (CPoly R) := ⟨sorry, sorry⟩
+
+lemma one_mul {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : 1 * a = a := by
+  ext1
+  simp only [one_def, one, mul_def, mul, toCPoly, list_mul_coh_left, singleton_list_mul_coh,
+    one_list_smul, coh]
+
+lemma mul_one {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : a * 1 = a := by
+  ext1
+  simp only [one_def, one, mul_def, mul, toCPoly, list_mul_coh_right, list_mul_singleton,
+    one_list_smul, coh]
+
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOneClass (CPoly R) := ⟨one_mul, mul_one⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroOneClass (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Monoid (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MonoidWithZero (CPoly R) where
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommMagma (CPoly R) := ⟨sorry⟩
+
+lemma mul_comm {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R)
+  : a * b = b * a := by simp only [mul_def, mul, toCPoly, list_mul_comm_coh]
+
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommMagma (CPoly R) := ⟨mul_comm⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommSemigroup (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommMonoid (CPoly R) where
-instance {R : Type*} [DecidableEq R] [CommSemiring R] : Distrib (CPoly R) := ⟨sorry, sorry⟩
+
+lemma mul_add {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : CPoly R)
+  : a * (b + c) = a * b + a * c := by simp only [mul_def, add_def, mul, add, toCPoly,
+    list_mul_coh_right, list_add_coh, list_mul_list_add]
+
+lemma add_mul {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : CPoly R)
+  : (a + b) * c = a * c + b * c := by simp only [mul_def, add_def, mul, add, toCPoly,
+    list_mul_coh_left, list_add_coh, list_add_list_mul]
+
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : Distrib (CPoly R) := ⟨mul_add, add_mul⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalNonAssocSemiring (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalSemiring (CPoly R)  where
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonAssocSemiring (CPoly R)  where
