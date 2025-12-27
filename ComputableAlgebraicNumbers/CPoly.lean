@@ -8,7 +8,6 @@ private def _noLeadingZero {R : Type*} [CommSemiring R] : List R → Prop
   | []     => True
   | x :: _ => x ≠ 0
 
-@[simp]
 def noTailingZero {R : Type*} [CommSemiring R] (l : List R) : Prop :=
   _noLeadingZero l.reverse
 
@@ -54,7 +53,6 @@ private lemma _eq_removeLeadingZeros_of_noLeading_zeros {R : Type*} [DecidableEq
   unfold _removeLeadingZeros
   rw [if_neg h]
 
-@[simp]
 def removeTailingZeros {R : Type*} [DecidableEq R] [CommSemiring R]
     (l : List R) : List R :=
   (_removeLeadingZeros l.reverse).reverse
@@ -71,14 +69,12 @@ def toCPoly {R : Type*} [DecidableEq R] [CommSemiring R]
   (l : List R) : CPoly R :=
   ⟨removeTailingZeros l, noTailingZero_removeTailingZeros⟩
 
-@[simp]
 lemma noTailingZero_iff {R : Type*} [DecidableEq R] [CommSemiring R] {l : List R}
   : noTailingZero l ↔ l = removeTailingZeros l := ⟨
     (List.reverse_eq_iff.1 <| _eq_removeLeadingZeros_of_noLeading_zeros ·),
     (· ▸ noTailingZero_removeTailingZeros)
   ⟩
 
-@[simp]
 lemma noTailingZero_iff' {R : Type*} [DecidableEq R] [CommSemiring R] {l : List R}
   : noTailingZero l ↔ l = (toCPoly l).coefs := noTailingZero_iff
 
@@ -113,7 +109,6 @@ private lemma _removeLeadingZeros_append_ne_zero {R : Type*} [DecidableEq R] [Co
   · simp only [h', List.cons_append, _removeLeadingZeros_cons, ↓reduceIte, ih]
   · simp only [List.cons_append, _removeLeadingZeros_cons, h', ↓reduceIte]
 
-@[simp]
 lemma removeTailingZeros_cons_of_ne_zero {R : Type*} [DecidableEq R] [CommSemiring R]
   {a : R} {as : List R} (h : a ≠ 0)
   : removeTailingZeros (a :: as) = a :: removeTailingZeros as := by
@@ -140,7 +135,6 @@ private lemma _removeLeadingZeros_append_zero_ite {R : Type*} [DecidableEq R] [C
       · simp only [h₂, List.cons_append, _removeLeadingZeros_cons, ↓reduceIte, ih, h₁]
       · simp only [List.cons_append, _removeLeadingZeros_cons, h₂, ↓reduceIte, reduceCtorEq]
 
-@[simp]
 lemma removeTailingZeros_zero_cons_ite {R : Type*} [DecidableEq R] [CommSemiring R]
   {as : List R} : removeTailingZeros (0 :: as) =
     if removeTailingZeros as = []
