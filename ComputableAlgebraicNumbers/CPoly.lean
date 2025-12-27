@@ -518,12 +518,14 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddZero (CPoly R) := ⟨
 
 lemma zero_add {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : 0 + a = a := by
   ext1
-  simp only [zero_def, zero, add_def, add, toCPoly, nil_list_add, coh]
+  simp
+  -- simp only [zero_def, zero, add_def, add, toCPoly, nil_list_add, coh]
 
 
 lemma add_zero {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : a + 0 = a := by
   ext1
-  simp only [zero_def, zero, add_def, add, toCPoly, list_add_nil, coh]
+  simp
+  -- simp only [zero_def, zero, add_def, add, toCPoly, list_add_nil, coh]
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddZeroClass (CPoly R)
   := ⟨zero_add, add_zero⟩
@@ -531,7 +533,8 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddMonoid (CPoly R) wher
   nsmul := nsmulRec
 
 lemma add_comm {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R)
-  : a + b = b + a := by simp only [add_def, add, toCPoly, list_add_comm]
+  : a + b = b + a := by simp
+  -- simp only [add_def, add, toCPoly, list_add_comm]
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddCommMagma (CPoly R) := ⟨add_comm⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddCommSemigroup (CPoly R) where
@@ -552,11 +555,13 @@ lemma mul_def {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : a *
 
 lemma zero_mul {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : 0 * a = 0 := by
   ext1
-  simp only [zero_def, zero, mul_def, mul, toCPoly, nil_list_mul, removeTailingZeros_nil]
+  simp
+  -- simp only [zero_def, zero, mul_def, mul, toCPoly, nil_list_mul, removeTailingZeros_nil]
 
 lemma mul_zero {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : a * 0 = 0 := by
   ext1
-  simp only [zero_def, zero, mul_def, mul, toCPoly, list_mul_nil_coh]
+  simp
+  -- simp only [zero_def, zero, mul_def, mul, toCPoly, list_mul_nil_coh]
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroClass (CPoly R)
   := ⟨zero_mul, mul_zero⟩
@@ -580,13 +585,14 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOne (CPoly R) := ⟨�
 
 lemma one_mul {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : 1 * a = a := by
   ext1
-  simp only [one_def, one, mul_def, mul, toCPoly, list_mul_coh_left, singleton_list_mul_coh,
-    one_list_smul, coh]
-
+  simp
+  -- simp only [one_def, one, mul_def, mul, toCPoly, list_mul_coh_left, singleton_list_mul_coh,
+  --   one_list_smul, coh]
 lemma mul_one {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : a * 1 = a := by
   ext1
-  simp only [one_def, one, mul_def, mul, toCPoly, list_mul_coh_right, list_mul_singleton,
-    one_list_smul, coh]
+  simp
+  -- simp only [one_def, one, mul_def, mul, toCPoly, list_mul_coh_right, list_mul_singleton,
+  --   one_list_smul, coh]
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOneClass (CPoly R) := ⟨one_mul, mul_one⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroOneClass (CPoly R) where
@@ -594,15 +600,17 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : Monoid (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MonoidWithZero (CPoly R) where
 
 lemma mul_comm {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R)
-  : a * b = b * a := by simp only [mul_def, mul, toCPoly, list_mul_comm_coh]
+  : a * b = b * a := by simp
+  -- simp only [mul_def, mul, toCPoly, list_mul_comm_coh]
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommMagma (CPoly R) := ⟨mul_comm⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommSemigroup (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommMonoid (CPoly R) where
 
 lemma mul_add {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : CPoly R)
-  : a * (b + c) = a * b + a * c := by simp only [mul_def, add_def, mul, add, toCPoly,
-    list_mul_coh_right, list_add_coh, list_mul_list_add]
+  : a * (b + c) = a * b + a * c := by simp
+  -- simp only [mul_def, add_def, mul, add, toCPoly,
+  --   list_mul_coh_right, list_add_coh,list_mul_list_add]
 
 lemma add_mul {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : CPoly R)
   : (a + b) * c = a * c + b * c := by simp only [mul_def, add_def, mul, add, toCPoly,
