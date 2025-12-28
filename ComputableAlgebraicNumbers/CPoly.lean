@@ -708,6 +708,72 @@ private unsafe def _reducedRowEchelonForm (M : List (List ℚ)) :List (List ℚ)
   else
     M
 
+
+structure Array2d (R : Type*) where
+  data : Array R -- make sure that there is only one reference to this at a time
+  row_count : ℕ  -- then the compiler optimizes it to modify it in place
+  column_count : ℕ
+  condition : data.size = row_count * column_count
+
+def _at (R : Type*) (M : Array2d R) (row : ℕ) (column : ℕ)
+  (h : row < M.row_count) (h' : column < M.column_count) : R :=
+  have : M.data.size > row*M.column_count+column := by
+    rw [M.condition]
+    simp only [gt_iff_lt]
+    grw [← Order.add_one_le_iff] at h h' ⊢
+    rw [_root_.add_assoc (row * M.column_count) column 1]
+    grw [h']
+    rw [← Nat.add_one_mul row M.column_count]
+    grw [h]
+  M.data[row*M.column_count+column]
+
+private unsafe def _matrixToReducedRowEchelonForm (M : List (List ℚ)) :List (List ℚ) :=
+  let length_lists' := M.map List.length
+  let length_lists := length_lists'.toSSet.toList
+  if length_unique:length_lists.length > 1 then [] else
+  if length_non_zero: length_lists.length = 0 then [] else
+  let length := length_lists[0]
+  let flatArrry := M.flatten.toArray
+  have :flatArrry.size = length*M.length := by
+    rw [List.size_toArray]
+    rw [List.length_flatten]
+
+    have h:(List.map List.length M).sum = length_lists'.sum := by rfl
+    rw [h]
+    have :length_lists'.sum = length_lists[0] *length_lists'.length := by
+      sorry
+    sorry
+  let Matrix := Array2d.mk flatArrry length M.length
+  let M := M.map (_ℚrevNorm)
+  let i := M.findFinIdx? (fun l ↦ ¬( l.getD 0 0 = 0))
+  if h : i.isSome then
+    let i := i.get h
+    --make sure the only non zero in the first column is a one in row i
+    --we move row i up at the end maybe we can already do this here
+    --(if we use arrays there is array.swap)
+    let M'' := M.mapIdx (fun idx l ↦
+      if idx = i then l else
+      if l.getD 0 0 = 0 then l else
+      list_sub ℚ l M[i]!
+    )
+    let stay := M''.find? (fun l ↦ ¬( l.getD 0 0 = 0)) --should only contain the i's row
+    let smaller := (M''.filter (fun l ↦ l.getD 0 0 = 0)).map ( --should contain everything else
+      fun l => match l with | [] => [] | _ :: qs => qs) -- removes the first column
+    let processedSmaller := _reducedRowEchelonForm smaller
+    let processedSmallerWithLeadingZeros :=
+      processedSmaller.map (fun l ↦ 0::l)
+    if h' : stay.isSome then
+      let first := processedSmallerWithLeadingZeros.find? ⊤
+      if h'' : first.isSome then
+        let q:ℚ := (stay.get h').getD 1 0 -- get second index to make it zero
+        list_sub ℚ (stay.get h') (list_smul ℚ q (first.get h'')) :: processedSmallerWithLeadingZeros
+      else
+        stay.get h' :: processedSmallerWithLeadingZeros
+    else
+      processedSmallerWithLeadingZeros
+  else
+    M
+
 unsafe def solve (M : List (List ℚ)) :List ℚ :=
   let solvedM := _reducedRowEchelonForm M
   let max_length := (solvedM.map (fun l ↦ l.length)).max?
@@ -722,7 +788,7 @@ unsafe def solve (M : List (List ℚ)) :List ℚ :=
   else
     []
 
-
+/-
 #eval list_mul ℤ [1]           [3]
 #eval list_mul ℤ [1,4]         [3]
 #eval list_mul ℤ [1,4]       [3,4]
@@ -758,5 +824,5 @@ unsafe def solve (M : List (List ℚ)) :List ℚ :=
 #eval ℚnormalize [4,2,0,-1,1,4]
 #eval ℚℤconvert (ℚnormalize [4,2,0,-1,1,4])
 #eval ℤℚconvert [4,2,0,-1,1,4]
-
+-/
 end CPoly
