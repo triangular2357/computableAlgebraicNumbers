@@ -672,28 +672,29 @@ def ℚℤconvert (i : List ℚ) : List ℤ :=
   _ℚℤmulConvert (ℚlcd i) i
 
 
+
+-- TODO replace this with the rewrite below using arrays
+-- (to make it faster and enable easier provable correctness)
 -- unsafe because I still need to show termination
--- maximum of M.map (fun l ↦ l.length) should work
--- TODO clean up or remove the option unwraping
--- Maybe rewrite with arrays for performance (its really slow for some reason)
+-- maximum of M.map (fun l ↦ l.length) could work
 -- does gaussian elimination
-private unsafe def _reducedRowEchelonForm (M : List (List ℚ)) :List (List ℚ) :=
-  let M := M.map (_ℚrevNorm)
-  let i := M.findFinIdx? (fun l ↦ ¬( l.getD 0 0 = 0))
+private unsafe def _OLDreducedRowEchelonForm (M : List (List ℚ)) :List (List ℚ) :=
+  let normedM := M.map (_ℚrevNorm)
+  let i := normedM.findFinIdx? (fun l ↦ ¬( l.getD 0 0 = 0))
   if h : i.isSome then
     let i := i.get h
     --make sure the only non zero in the first column is a one in row i
     --we move row i up at the end maybe we can already do this here
     --(if we use arrays there is array.swap)
-    let M'' := M.mapIdx (fun idx l ↦
+    let M'' := normedM.mapIdx (fun idx l ↦
       if idx = i then l else
       if l.getD 0 0 = 0 then l else
-      list_sub ℚ l M[i]!
+      list_sub ℚ l normedM[i]!
     )
     let stay := M''.find? (fun l ↦ ¬( l.getD 0 0 = 0)) --should only contain the i's row
     let smaller := (M''.filter (fun l ↦ l.getD 0 0 = 0)).map ( --should contain everything else
       fun l => match l with | [] => [] | _ :: qs => qs) -- removes the first column
-    let processedSmaller := _reducedRowEchelonForm smaller
+    let processedSmaller := _OLDreducedRowEchelonForm smaller
     let processedSmallerWithLeadingZeros :=
       processedSmaller.map (fun l ↦ 0::l)
     if h' : stay.isSome then
@@ -706,7 +707,7 @@ private unsafe def _reducedRowEchelonForm (M : List (List ℚ)) :List (List ℚ)
     else
       processedSmallerWithLeadingZeros
   else
-    M
+    normedM
 
 
 structure Array2d (R : Type*) where
@@ -728,6 +729,7 @@ def _at (R : Type*) (M : Array2d R) (row : ℕ) (column : ℕ)
   M.data[row*M.column_count+column]
 
 private unsafe def _matrixToReducedRowEchelonForm (M : List (List ℚ)) :List (List ℚ) :=
+  --TODO just take the Array2d as input and let another fuction handle the conversion (maybe solve)
   let length_lists' := M.map List.length
   let length_lists := length_lists'.toSSet.toList
   if length_unique:length_lists.length > 1 then [] else
@@ -745,21 +747,22 @@ private unsafe def _matrixToReducedRowEchelonForm (M : List (List ℚ)) :List (L
     sorry
   let Matrix := Array2d.mk flatArrry length M.length
   let M := M.map (_ℚrevNorm)
-  let i := M.findFinIdx? (fun l ↦ ¬( l.getD 0 0 = 0))
+  let i := M.findFinIdx? (fun (l:List ℚ) ↦ ¬( l.getD 0 0 = 0))
   if h : i.isSome then
     let i := i.get h
     --make sure the only non zero in the first column is a one in row i
     --we move row i up at the end maybe we can already do this here
     --(if we use arrays there is array.swap)
-    let M'' := M.mapIdx (fun idx l ↦
+    let M'' := M.mapIdx (fun idx (l:List ℚ) ↦
       if idx = i then l else
       if l.getD 0 0 = 0 then l else
       list_sub ℚ l M[i]!
     )
-    let stay := M''.find? (fun l ↦ ¬( l.getD 0 0 = 0)) --should only contain the i's row
-    let smaller := (M''.filter (fun l ↦ l.getD 0 0 = 0)).map ( --should contain everything else
+    let stay := M''.find? (fun (l:List ℚ) ↦ ¬( l.getD 0 0 = 0)) --should only contain the i's row
+    let smaller :=                                               --should contain everything else
+      (M''.filter (fun (l:List ℚ) ↦ l.getD 0 0 = 0)).map (
       fun l => match l with | [] => [] | _ :: qs => qs) -- removes the first column
-    let processedSmaller := _reducedRowEchelonForm smaller
+    let processedSmaller := _OLDreducedRowEchelonForm smaller
     let processedSmallerWithLeadingZeros :=
       processedSmaller.map (fun l ↦ 0::l)
     if h' : stay.isSome then
@@ -775,7 +778,7 @@ private unsafe def _matrixToReducedRowEchelonForm (M : List (List ℚ)) :List (L
     M
 
 unsafe def solve (M : List (List ℚ)) :List ℚ :=
-  let solvedM := _reducedRowEchelonForm M
+  let solvedM := _OLDreducedRowEchelonForm M
   let max_length := (solvedM.map (fun l ↦ l.length)).max?
   if h : max_length.isSome then
     ((Array.range ((max_length.get h)-1)).map (fun i ↦ -- there is probably a nicer way to do this
