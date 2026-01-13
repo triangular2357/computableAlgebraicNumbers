@@ -872,57 +872,6 @@ def ℚℤconvert (i : List ℚ) : List ℤ :=
   _ℚℤmulConvert (ℚlcd i) i
 
 
-
--- TODO replace this with the rewrite below using arrays
--- (to make it faster and enable easier provable correctness)
--- unsafe because I still need to show termination
--- maximum of M.map (fun l ↦ l.length) could work
--- does gaussian elimination
-private unsafe def _OLDreducedRowEchelonForm (M : List (List ℚ)) :List (List ℚ) :=
-  let normedM := M.map (_ℚrevNorm)
-  let i := normedM.findFinIdx? (fun l ↦ ¬( l.getD 0 0 = 0))
-  if h : i.isSome then
-    let i := i.get h
-    --make sure the only non zero in the first column is a one in row i
-    --we move row i up at the end maybe we can already do this here
-    --(if we use arrays there is array.swap)
-    let M'' := normedM.mapIdx (fun idx l ↦
-      if idx = i then l else
-      if l.getD 0 0 = 0 then l else
-      list_sub ℚ l normedM[i]!
-    )
-    let stay := M''.find? (fun l ↦ ¬( l.getD 0 0 = 0)) --should only contain the i's row
-    let smaller := (M''.filter (fun l ↦ l.getD 0 0 = 0)).map ( --should contain everything else
-      fun l => match l with | [] => [] | _ :: qs => qs) -- removes the first column
-    let processedSmaller := _OLDreducedRowEchelonForm smaller
-    let processedSmallerWithLeadingZeros :=
-      processedSmaller.map (fun l ↦ 0::l)
-    if h' : stay.isSome then
-      let first := processedSmallerWithLeadingZeros.find? ⊤
-      if h'' : first.isSome then
-        let q:ℚ := (stay.get h').getD 1 0 -- get second index to make it zero
-        list_sub ℚ (stay.get h') (list_smul ℚ q (first.get h'')) :: processedSmallerWithLeadingZeros
-      else
-        stay.get h' :: processedSmallerWithLeadingZeros
-    else
-      processedSmallerWithLeadingZeros
-  else
-    normedM
-
-unsafe def solve (M : List (List ℚ)) :List ℚ :=
-  let solvedM := _OLDreducedRowEchelonForm M
-  let max_length := (solvedM.map (fun l ↦ l.length)).max?
-  if h : max_length.isSome then
-    ((Array.range ((max_length.get h)-1)).map (fun i ↦ -- there is probably a nicer way to do this
-      let e := solvedM.find? (fun l ↦ (¬ ((l.getD i 0)=0)))
-      if h : e.isSome then
-        (e.get h).getLastD 0
-      else
-        0
-    )).toList
-  else
-    []
-
 /-
 #eval list_mul ℤ [1]           [3]
 #eval list_mul ℤ [1,4]         [3]
