@@ -823,6 +823,29 @@ instance {R : Type*} [DecidableEq R] [CommRing R] : AddCommGroup (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommRing R] : Ring (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommRing R] : CommRing (CPoly R) where
 
+def lift {R S : Type*} [CommSemiring R] [CommSemiring S] [DecidableEq R] [DecidableEq S]
+  (f : R →+* S) : CPoly R →+* CPoly S where
+    toFun := fun p ↦ toCPoly (p.coefs.map f.toFun)
+    map_one' := sorry
+    map_mul' := sorry
+    map_zero' := sorry
+    map_add' := sorry
+
+def liftTo {R : Type*} [DecidableEq R] [CommSemiring R] (f : CPoly R) (S : Type*)
+  [DecidableEq S] [CommSemiring S] [inst : Algebra R S] : CPoly S :=
+    (lift (inst.algebraMap)).toFun f
+
+def list_deriv_n {R : Type*} [CommSemiring R] : ℕ →  List R → List R
+  | _, []          => []
+  | 0, _ :: as     => list_deriv_n 1 as
+  | n + 1, a :: as => (n + 1) * a :: list_deriv_n (n + 2) as
+
+abbrev list_deriv {R : Type*} [CommSemiring R] : List R → List R := list_deriv_n 0
+
+def deriv {R : Type*} [DecidableEq R] [CommSemiring R] (f : CPoly R) : CPoly R :=
+  toCPoly (list_deriv f.coefs)
+
+
 def ℤdiv : ℤ  → List ℤ → List ℤ
   | _,      [] => []
   | r, a :: as => (a/r) :: (ℤdiv r as)
