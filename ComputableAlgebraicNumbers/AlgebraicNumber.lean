@@ -11,6 +11,7 @@ structure PreRealAlgebraicNumber where
   ivt_condition : min_poly.eval lower * min_poly.eval upper ≤ 0
   deriv_nzero : ∀ x ∈ Set.Icc lower upper, (min_poly.deriv.liftTo ℝ).eval x ≠ 0
 
+open ApproximationType
 
 instance : ApproximationType PreRealAlgebraicNumber where
   improve a :=
@@ -51,13 +52,13 @@ instance : ApproximationType PreRealAlgebraicNumber where
 abbrev intervalLength (p : PreRealAlgebraicNumber) : ℚ := p.upper - p.lower
 
 lemma intervalLength_improve (p : PreRealAlgebraicNumber) :
-  intervalLength p / 2 = intervalLength (ApproximationType.improve p) := by
-  unfold intervalLength ApproximationType.improve instApproximationTypePreRealAlgebraicNumber
+  intervalLength p / 2 = intervalLength (improve p) := by
+  unfold intervalLength improve instApproximationTypePreRealAlgebraicNumber
   simp only
   split_ifs <;> ring
 
 lemma intervalLength_iterate_improve (p : PreRealAlgebraicNumber) (n : ℕ) :
-  intervalLength p / (2 ^ n) = intervalLength (ApproximationType.improve^[n] p) := by
+  intervalLength p / (2 ^ n) = intervalLength (improve^[n] p) := by
   induction n with
   | zero => simp only [pow_zero, div_one, Function.iterate_zero, id_eq]
   | succ n ih =>
@@ -65,7 +66,7 @@ lemma intervalLength_iterate_improve (p : PreRealAlgebraicNumber) (n : ℕ) :
     ring
 
 instance (ε : ℚ) (h : ε > 0) :
-  ApproximationType.isExact (fun (p : PreRealAlgebraicNumber) ↦ intervalLength p < ε) where
+  isExact (fun (p : PreRealAlgebraicNumber) ↦ intervalLength p < ε) where
     reachable := by
       intro p
       let m := Real.logb 2 (intervalLength p / ε)
