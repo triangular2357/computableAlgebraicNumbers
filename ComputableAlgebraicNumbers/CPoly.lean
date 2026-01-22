@@ -823,13 +823,99 @@ instance {R : Type*} [DecidableEq R] [CommRing R] : AddCommGroup (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommRing R] : Ring (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommRing R] : CommRing (CPoly R) where
 
+lemma map_coh {R S : Type*} [CommSemiring R] [CommSemiring S] [DecidableEq R] [DecidableEq S]
+  (f : R → S) (h0 : f 0 = 0) (a : List R)
+  : removeTailingZeros (a.map f) = removeTailingZeros ((removeTailingZeros a).map f) := by
+  induction a with
+  | nil => rfl
+  | cons head tail ih =>
+    by_cases h : head = 0
+    · rw [h, removeTailingZeros_zero_cons_ite, apply_ite (List.map f), apply_ite removeTailingZeros,
+        List.map_cons, List.map_cons, List.map_nil, h0, removeTailingZeros_zero_cons_ite]
+      by_cases h' : removeTailingZeros tail = []
+      · have : removeTailingZeros (List.map f tail) = [] := by
+          rw [ih, h', List.map_nil, removeTailingZeros_nil]
+        rw [if_pos h', if_pos this, removeTailingZeros_nil]
+      · by_cases h'' : removeTailingZeros (List.map f tail) = []
+        · rw [if_neg h', if_pos h'', ← cons_coh, ← ih, h'',
+            removeTailingZeros_zero_cons_of_removeTailingZeros]
+          exact removeTailingZeros_nil
+        · rw [if_neg h', if_neg h'', removeTailingZeros_zero_cons_ite, ← ih, if_neg h'']
+    · rw [removeTailingZeros_cons_of_ne_zero h, List.map_cons, List.map_cons,
+        ← cons_coh, ih, cons_coh]
+
+lemma map_ringHom_coh {R S : Type*} [CommSemiring R] [CommSemiring S]
+  [DecidableEq R] [DecidableEq S] (f : R →+* S) (a : List R)
+  : removeTailingZeros (a.map f) = removeTailingZeros ((removeTailingZeros a).map f) :=
+    map_coh f (RingHom.map_zero f) a
+
+lemma map_ringHom_list_add_coh {R S : Type*} [CommSemiring R] [CommSemiring S]
+  [DecidableEq R] [DecidableEq S] (f : R →+* S) (xx : List R) (yy : List R)
+  : removeTailingZeros (List.map f (removeTailingZeros (list_add R xx yy))) =
+  removeTailingZeros (list_add S (List.map f xx) (List.map f yy)) := by
+    induction xx generalizing yy with
+    | nil =>
+      rw [← map_ringHom_coh]
+      simp only [list_add_comm, list_add_nil, List.map_nil, nil_list_add]
+    | cons x0 xs ihx =>
+    induction yy with
+    | nil =>
+      rw [← map_ringHom_coh]
+      simp only [list_add_nil, List.map_cons, List.map_nil, list_add_comm, nil_list_add]
+    | cons y0 ys _ =>
+      simp_rw [← map_ringHom_coh] at ihx ⊢
+      simp only [cons_list_add_cons, List.map_cons, map_add]
+      rw [← cons_coh, ihx ys, cons_coh]
+
+lemma map_ringHom_list_smul_coh {R S : Type*} [CommSemiring R] [CommSemiring S]
+  [DecidableEq R] [DecidableEq S] (f : R →+* S) (x : R) (yy : List R)
+  : removeTailingZeros (List.map f (removeTailingZeros (list_smul R x yy))) =
+  removeTailingZeros (list_smul S (f x) (List.map f yy)) := by
+    rw [← map_ringHom_coh]
+    induction yy with
+    | nil => rfl
+    | cons head tail ih =>
+      rw [list_smul_cons, List.map_cons, List.map_cons, list_smul_cons, ← cons_coh, ih,
+        cons_coh, map_mul]
+
+lemma map_ringHom_list_mul_coh {R S : Type*} [CommSemiring R] [CommSemiring S]
+  [DecidableEq R] [DecidableEq S] (f : R →+* S) (xx : List R) (yy : List R)
+  : removeTailingZeros (List.map f (removeTailingZeros (list_mul R xx yy))) =
+  removeTailingZeros (list_mul S (List.map f xx) (List.map f yy)) := by
+  induction xx with
+    | nil => rfl
+    | cons head tail ih =>
+      rw [cons_list_mul, List.map_cons, cons_list_mul, ← list_add_coh, map_ringHom_list_add_coh,
+        ← list_add_coh, map_ringHom_list_smul_coh, ← map_ringHom_coh, List.map_cons, map_zero,
+        ← cons_coh, map_ringHom_coh, ih, cons_coh, list_add_coh]
+
 def lift {R S : Type*} [CommSemiring R] [CommSemiring S] [DecidableEq R] [DecidableEq S]
   (f : R →+* S) : CPoly R →+* CPoly S where
-    toFun := fun p ↦ toCPoly (p.coefs.map f.toFun)
-    map_one' := sorry
-    map_mul' := sorry
-    map_zero' := sorry
-    map_add' := sorry
+    toFun := fun p ↦ toCPoly (p.coefs.map f)
+    map_one' := by
+      by_cases h : (1 : S) = 0
+      · have : ∀ s : S, s = 0 := by
+          intro s
+          rw [← Monoid.mul_one s, ← MonoidWithZero.mul_zero s, h]
+        have : ∀ ss : List S, removeTailingZeros ss = [] := by
+          intro ss
+          induction ss with
+          | nil => rfl
+          | cons head tail ih =>
+            rw [this head, removeTailingZeros_zero_cons_of_removeTailingZeros ih]
+        simp [this]
+      · have h' : (1 : R) ≠ 0 := by
+          intro h'
+          have := congrArg f.toFun h'
+          simp [h] at this
+        simp only [toCPoly, one_def, one, removeTailingZeros_cons_of_ne_zero h',
+          removeTailingZeros_nil, List.map_cons, map_one, List.map_nil]
+    map_mul' x y := by
+      simp only [toCPoly, mul_def, mul, map_ringHom_list_mul_coh, list_mul_coh_right,
+        list_mul_coh_left]
+    map_zero' := by simp only [toCPoly, zero_def, zero, List.map_nil, removeTailingZeros_nil]
+    map_add' x y := by simp only [toCPoly, add_def, add, list_add_coh, map_ringHom_list_add_coh]
+
 
 def liftTo {R : Type*} [DecidableEq R] [CommSemiring R] (f : CPoly R) (S : Type*)
   [DecidableEq S] [CommSemiring S] [inst : Algebra R S] : CPoly S :=
