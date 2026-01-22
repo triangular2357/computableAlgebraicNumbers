@@ -48,4 +48,59 @@ instance : ApproximationType PreRealAlgebraicNumber where
         Set.Icc_subset_Icc hbetween.1 (le_refl a.upper) hx
     }
 
-#print axioms PreRealAlgebraicNumber
+abbrev intervalLength (p : PreRealAlgebraicNumber) : ℚ := p.upper - p.lower
+
+lemma intervalLength_improve (p : PreRealAlgebraicNumber) :
+  intervalLength p / 2 = intervalLength (ApproximationType.improve p) := by
+  unfold intervalLength ApproximationType.improve instApproximationTypePreRealAlgebraicNumber
+  simp only
+  split_ifs <;> ring
+
+lemma intervalLength_iterate_improve (p : PreRealAlgebraicNumber) (n : ℕ) :
+  intervalLength p / (2 ^ n) = intervalLength (ApproximationType.improve^[n] p) := by
+  induction n with
+  | zero => simp only [pow_zero, div_one, Function.iterate_zero, id_eq]
+  | succ n ih =>
+    rw [Function.iterate_succ_apply', ← intervalLength_improve, ← ih]
+    ring
+
+instance (ε : ℚ) (h : ε > 0) :
+  ApproximationType.isExact (fun (p : PreRealAlgebraicNumber) ↦ intervalLength p < ε) where
+    reachable := by
+      intro p
+      let m := Real.logb 2 (intervalLength p / ε)
+      let n : ℕ := Nat.ceil (m + 1)
+      have : n > m := calc
+          _ ≥ m + 1 := Nat.le_ceil _
+          _ > m := lt_add_one m
+      use n
+      rw [← intervalLength_iterate_improve]
+      apply Real.ratCast_lt.1
+      by_cases h' : intervalLength p > 0
+      · subst m
+        unfold intervalLength at h'
+        by_contra h''
+        simp only [not_lt] at h''
+        grw [h''] at this
+        · simp at this
+          grw [Real.logb_lt_iff_lt_rpow] at this
+          · apply ne_of_lt this
+            field_simp
+            rw [mul_comm, mul_div_assoc, div_self (ne_of_gt (by norm_cast)),
+              mul_one, Real.rpow_natCast]
+          · simp only [Nat.one_lt_ofNat]
+          · apply div_pos
+            · norm_cast
+            · apply div_pos
+              · norm_cast
+              · simp only [Nat.ofNat_pos, pow_pos]
+        · simp only [Nat.one_lt_ofNat]
+      · have := p.lower_le_upper
+        unfold intervalLength
+        simp only [gt_iff_lt, sub_pos, not_lt] at h'
+        have : p.lower = p.upper := le_antisymm this h'
+        simp only [this, sub_self, zero_div, Rat.cast_zero, Rat.cast_pos, h]
+    stable := by
+      intro p hp
+      grw [← intervalLength_improve, hp]
+      simp only [half_lt_self_iff, h]
