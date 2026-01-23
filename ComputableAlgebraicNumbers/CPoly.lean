@@ -20,6 +20,9 @@ structure CPoly (R : Type*) [CommSemiring R] where
 
 namespace CPoly
 
+def degree {R : Type*} [CommSemiring R] (p : CPoly R) : WithBot ℕ :=
+  if p.coefs.length=0 then ⊥ else WithBot.some (p.coefs.length - 1)
+
 private def _removeLeadingZeros {R : Type*} [DecidableEq R] [CommSemiring R] : List R → List R
   | []      => []
   | x :: xs => if x = 0 then _removeLeadingZeros xs else x :: xs
