@@ -1,5 +1,7 @@
-import Mathlib
-
+--import Mathlib
+import Mathlib.Algebra.DirectSum.Ring
+import Mathlib.Algebra.Lie.OfAssociative
+import Mathlib.Analysis.Normed.Field.LemmasLean
 -- section
 -- source https://github.com/leanprover-community/mathlib4/wiki/Computation-models-for-polynomials-and-finitely-supported-functions
 
