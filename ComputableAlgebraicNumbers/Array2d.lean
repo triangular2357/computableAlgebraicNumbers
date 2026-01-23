@@ -70,7 +70,7 @@ def get_row (α : Type*) (M : Array2d α) (row : ℕ) : Subarray α :=
   M.data.toSubarray (row*M.column_count) ((row+1)*M.column_count)
 
 def get_column {α : Type*} [DecidableEq α] (M : Array2d α) (column : ℕ)
- (h : NeZero M.column_count) : Array α := -- impl like getEvenElems in math lib
+ (h : NeZero M.column_count) : Array α := -- impl like getEvenElems in Mathlib
   (·.2) <| M.data.foldl (init := ((0:Fin M.column_count), Array.empty)) fun (c, acc) a =>
     if c=column then
       (c+1, acc.push a)
