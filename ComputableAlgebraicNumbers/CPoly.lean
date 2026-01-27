@@ -892,6 +892,33 @@ lemma toPolynomial_degree {R : Type*} [DecidableEq R] [CommSemiring R] (f : CPol
       simp only [Finset.mem_filter, Finset.mem_range] at hi
       apply WithBot.coe_le_coe.2 (Nat.le_of_lt_succ hi.1)
 
+def natDegree {R : Type*} [DecidableEq R] [CommSemiring R] (p : CPoly R) : ℕ :=
+  (degree p).unbotD 0
+
+@[toPolynomialSimp]
+lemma toPolynomial_natDegree {R : Type*} [DecidableEq R] [CommSemiring R] (p : CPoly R) :
+  p.natDegree = p.toPolynomial.natDegree := by
+  unfold natDegree Polynomial.natDegree
+  simp only [toPolynomialSimp]
+
+def leadingCoeff {R : Type*} [DecidableEq R] [CommSemiring R] (p : CPoly R) : R :=
+  p.toPolynomial.coeff p.natDegree
+
+@[toPolynomialSimp]
+lemma toPolynomial_leadingCoeff {R : Type*} [DecidableEq R] [CommSemiring R] (p : CPoly R) :
+  p.leadingCoeff = p.toPolynomial.leadingCoeff := by
+  unfold leadingCoeff Polynomial.leadingCoeff
+  simp only [toPolynomialSimp]
+
+def Monic {R : Type*} [DecidableEq R] [CommSemiring R] (p : CPoly R) :=
+  p.leadingCoeff = (1 : R)
+
+@[toPolynomialSimp]
+lemma toPolynomial_Monic {R : Type*} [DecidableEq R] [CommSemiring R] (p : CPoly R) :
+  p.Monic = p.toPolynomial.Monic := by
+  unfold Monic Polynomial.Monic
+  simp only [toPolynomialSimp]
+
 notation "X" => toCPoly [0, 1]
 
 instance {R : Type*} [CommSemiring R] [DecidableEq R] [Repr R] : Repr (CPoly R) where
