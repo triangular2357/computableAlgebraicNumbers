@@ -922,4 +922,18 @@ lemma toPolynomial_degree {R : Type*} [DecidableEq R] [CommSemiring R] (f : CPol
       simp only [Finset.mem_filter, Finset.mem_range] at hi
       apply WithBot.coe_le_coe.2 (Nat.le_of_lt_succ hi.1)
 
+notation "X" => toCPoly [0, 1]
+
+instance {R : Type*} [CommSemiring R] [DecidableEq R] [Repr R] : Repr (CPoly R) where
+  reprPrec x _ :=
+    if x = 0
+    then f!"const {repr (0 : R)}"
+    else
+      let l := (x.coefs.zip (List.range x.coefs.length)).reverse.filter (·.1 ≠ 0)
+      Std.Format.joinSep (l.map fun
+        | (a, 0) => f!"const {repr a}"
+        | (a, 1) => if a = 1 then f!"X" else f!"{repr a}*X"
+        | (a, i) => if a = 1 then f!"X^{i}" else f!"{repr a}*X^{i}"
+      ) f!" + "
+
 end CPoly
