@@ -1,4 +1,5 @@
 import Mathlib
+import ComputableAlgebraicNumbers.toPolynomialSimpSet
 
 namespace CPoly
 
@@ -346,6 +347,11 @@ lemma toPolynomial_bij {R : Type*} [CommSemiring R] [DecidableEq R] :
 noncomputable def toPolynomial_Equiv {R : Type*} [CommSemiring R] [DecidableEq R] :
   CPoly R ≃ Polynomial R := Equiv.ofBijective toPolynomial toPolynomial_bij
 
+@[toPolynomialSimp]
+lemma toPolynomial_eq {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) :
+  (a = b) = (toPolynomial a = toPolynomial b) :=
+    propext toPolynomial_Equiv.apply_eq_iff_eq.symm
+
 def list_add (R : Type*) [CommSemiring R] : List R → List R → List R
   | []     , bs      => bs
   | as     , []      => as
@@ -388,7 +394,7 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : Add (CPoly R) := ⟨add�
 
 lemma add_def {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : a + b = add a b := rfl
 
-@[simp]
+@[toPolynomialSimp]
 lemma toPolynomial_add {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) :
   toPolynomial (a + b) = toPolynomial a + toPolynomial b := by
   obtain ⟨a, ha⟩ := a
@@ -407,7 +413,7 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : Zero (CPoly R) := ⟨zer
 
 lemma zero_def {R : Type*} [DecidableEq R] [CommSemiring R] : (0 : CPoly R) = zero := rfl
 
-@[simp]
+@[toPolynomialSimp]
 lemma toPolynomial_zero {R : Type*} [DecidableEq R] [CommSemiring R] :
   toPolynomial (0 : CPoly R) = 0 := by
   simp only [toPolynomial, zero_def, zero, List.toFinsupp_nil, Polynomial.ofFinsupp_zero]
@@ -446,7 +452,7 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : SMul R (CPoly R) := ⟨s
 lemma smul_def {R : Type*} [DecidableEq R] [CommSemiring R] (a : R) (b : CPoly R)
   : a • b = smul a b := rfl
 
-@[simp]
+@[toPolynomialSimp]
 lemma toPolynomial_smul {R : Type*} [DecidableEq R] [CommSemiring R] (a : R) (b : CPoly R) :
   toPolynomial (a • b) = a • toPolynomial b := by
   obtain ⟨b, hb⟩ := b
@@ -494,7 +500,7 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : Mul (CPoly R) := ⟨mul�
 
 lemma mul_def {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : a * b = mul a b := rfl
 
-@[simp]
+@[toPolynomialSimp]
 lemma toPolynomial_mul {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) :
   toPolynomial (a * b) = toPolynomial a * toPolynomial b := by
   obtain ⟨a, ha⟩ := a
@@ -512,7 +518,7 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : One (CPoly R) := ⟨one�
 
 lemma one_def {R : Type*} [DecidableEq R] [CommSemiring R] : (1 : CPoly R) = one := rfl
 
-@[simp]
+@[toPolynomialSimp]
 lemma toPolynomial_one {R : Type*} [DecidableEq R] [CommSemiring R] :
   toPolynomial (1 : CPoly R) = 1 := by
   unfold toPolynomial
@@ -556,7 +562,7 @@ instance {R : Type*} [DecidableEq R] [CommRing R] : Neg (CPoly R) := ⟨neg⟩
 
 lemma neg_def {R : Type*} [DecidableEq R] [CommRing R] (a : CPoly R) : -a = neg a := rfl
 
-@[simp]
+@[toPolynomialSimp]
 lemma toPolynomial_neg {R : Type*} [DecidableEq R] [CommRing R] (a : CPoly R) :
   toPolynomial (-a) = -toPolynomial a := by
   obtain ⟨a, ha⟩ := a
@@ -610,7 +616,7 @@ instance {R : Type*} [DecidableEq R] [CommRing R] : Sub (CPoly R) := ⟨sub⟩
 
 lemma sub_def {R : Type*} [DecidableEq R] [CommRing R] (a b : CPoly R) : a - b = sub a b := rfl
 
-@[simp]
+@[toPolynomialSimp]
 lemma toPolynomial_sub {R : Type*} [DecidableEq R] [CommRing R] (a b : CPoly R) :
   toPolynomial (a - b) = toPolynomial a - toPolynomial b := by
   obtain ⟨a, ha⟩ := a
@@ -674,22 +680,17 @@ def eval {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) (b : R) : R 
   list_eval R a.coefs b
 
 lemma add_assoc {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : CPoly R)
-  : a + b + c = a + (b + c) := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_add]
-    exact _root_.add_assoc a.toPolynomial b.toPolynomial c.toPolynomial
+  : a + b + c = a + (b + c) := by simp only [toPolynomialSimp]; ring
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddSemigroup (CPoly R) := ⟨add_assoc⟩
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddZero (CPoly R) := ⟨⟩
 
 lemma zero_add {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : 0 + a = a := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_add, toPolynomial_zero, _root_.zero_add]
+    simp only [toPolynomialSimp]; ring
 
 lemma add_zero {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : a + 0 = a := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_add, toPolynomial_zero, _root_.add_zero]
+    simp only [toPolynomialSimp]; ring
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddZeroClass (CPoly R)
   := ⟨zero_add, add_zero⟩
@@ -697,31 +698,23 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddMonoid (CPoly R) wher
   nsmul := nsmulRec
 
 lemma add_comm {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R)
-  : a + b = b + a := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_add]
-    exact AddCommMagma.add_comm a.toPolynomial b.toPolynomial
+  : a + b = b + a := by simp only [toPolynomialSimp]; ring
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddCommMagma (CPoly R) := ⟨add_comm⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddCommSemigroup (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : AddCommMonoid (CPoly R) where
 
 lemma zero_mul {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : 0 * a = 0 := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_mul, toPolynomial_zero, MulZeroClass.zero_mul]
+    simp only [toPolynomialSimp]; ring
 
 lemma mul_zero {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : a * 0 = 0 := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_mul, toPolynomial_zero, MulZeroClass.mul_zero]
+    simp only [toPolynomialSimp]; ring
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroClass (CPoly R)
   := ⟨zero_mul, mul_zero⟩
 
 lemma mul_assoc {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : CPoly R)
-  : a * b * c = a * (b * c) := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_mul]
-    exact _root_.mul_assoc a.toPolynomial b.toPolynomial c.toPolynomial
+  : a * b * c = a * (b * c) := by simp only [toPolynomialSimp]; ring
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Semigroup (CPoly R) := ⟨mul_assoc⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : SemigroupWithZero (CPoly R) where
@@ -729,12 +722,10 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : SemigroupWithZero (CPoly
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOne (CPoly R) := ⟨⟩
 
 lemma one_mul {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : 1 * a = a := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_mul, toPolynomial_one, _root_.one_mul]
+    simp only [toPolynomialSimp]; ring
 
 lemma mul_one {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : a * 1 = a := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_mul, toPolynomial_one, _root_.mul_one]
+    simp only [toPolynomialSimp]; ring
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOneClass (CPoly R) := ⟨one_mul, mul_one⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroOneClass (CPoly R) where
@@ -742,26 +733,17 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : Monoid (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MonoidWithZero (CPoly R) where
 
 lemma mul_comm {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R)
-  : a * b = b * a := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_mul]
-    exact CommMonoid.mul_comm a.toPolynomial b.toPolynomial
+  : a * b = b * a := by simp only [toPolynomialSimp]; ring
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommMagma (CPoly R) := ⟨mul_comm⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommSemigroup (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommMonoid (CPoly R) where
 
 lemma mul_add {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : CPoly R)
-  : a * (b + c) = a * b + a * c := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_mul, toPolynomial_add]
-    exact LeftDistribClass.left_distrib a.toPolynomial b.toPolynomial c.toPolynomial
+  : a * (b + c) = a * b + a * c := by simp only [toPolynomialSimp]; ring
 
 lemma add_mul {R : Type*} [DecidableEq R] [CommSemiring R] (a b c : CPoly R)
-  : (a + b) * c = a * c + b * c := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_mul, toPolynomial_add]
-    exact RightDistribClass.right_distrib a.toPolynomial b.toPolynomial c.toPolynomial
+  : (a + b) * c = a * c + b * c := by simp only [toPolynomialSimp]; ring
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Distrib (CPoly R) := ⟨mul_add, add_mul⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : NonUnitalNonAssocSemiring (CPoly R) where
@@ -772,7 +754,7 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : CommSemiring (CPoly R) w
 
 def const {R : Type*} [DecidableEq R] [CommSemiring R] (a : R) : CPoly R := toCPoly [a]
 
-@[simp]
+@[toPolynomialSimp]
 def toPolynomial_const {R : Type*} [DecidableEq R] [CommSemiring R] (a : R) :
   toPolynomial (const a) = Polynomial.C a := by
   unfold const toPolynomial
@@ -781,18 +763,14 @@ def toPolynomial_const {R : Type*} [DecidableEq R] [CommSemiring R] (a : R) :
   simp only [Polynomial.ofFinsupp_single, Polynomial.monomial_zero_left]
 
 lemma sub_eq_add_neg {R : Type*} [DecidableEq R] [CommRing R] (a b : CPoly R)
-  : a - b = a + -b := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_sub, toPolynomial_add, toPolynomial_neg]
-    exact rfl
+  : a - b = a + -b := by simp only [toPolynomialSimp]; ring
 
 instance {R : Type*} [DecidableEq R] [CommRing R] : SubNegMonoid (CPoly R) where
   sub_eq_add_neg := sub_eq_add_neg
   zsmul := zsmulRec
 
 lemma neg_add_cancel {R : Type*} [DecidableEq R] [CommRing R] (a : CPoly R) : -a + a = 0 := by
-    apply toPolynomial_inj
-    simp only [toPolynomial_add, toPolynomial_neg, _root_.neg_add_cancel, toPolynomial_zero]
+    simp only [toPolynomialSimp]; ring
 
 instance {R : Type*} [DecidableEq R] [CommRing R] : AddGroup (CPoly R) := ⟨neg_add_cancel⟩
 instance {R : Type*} [DecidableEq R] [CommRing R] : AddCommGroup (CPoly R) where
@@ -811,7 +789,7 @@ noncomputable def toPolynomial_ringEquiv {R : Type*} [CommSemiring R] [Decidable
 def map {R S : Type*} [CommSemiring R] [CommSemiring S] [DecidableEq R] [DecidableEq S]
   (f : R →+* S) (a : CPoly R) : CPoly S := toCPoly (a.coefs.map f)
 
-@[simp]
+@[toPolynomialSimp]
 lemma toPolynomial_map {R S : Type*} [CommSemiring R] [CommSemiring S]
   [DecidableEq R] [DecidableEq S] (f : R →+* S) (a : CPoly R) :
   (a.map f).toPolynomial = a.toPolynomial.map f := by
@@ -828,18 +806,10 @@ instance {R : Type*} [DecidableEq R] [CommSemiring R] : DecidableEq (CPoly R) :=
 def lift {R S : Type*} [CommSemiring R] [CommSemiring S] [DecidableEq R] [DecidableEq S]
   (f : R →+* S) : CPoly R →+* CPoly S where
     toFun := map f
-    map_one' := by
-      apply toPolynomial_inj
-      simp only [toPolynomial_map, toPolynomial_one, Polynomial.map_one]
-    map_mul' x y := by
-      apply toPolynomial_inj
-      simp only [toPolynomial_map, toPolynomial_mul, Polynomial.map_mul]
-    map_zero' := by
-      apply toPolynomial_inj
-      simp only [toPolynomial_map, toPolynomial_zero, Polynomial.map_zero]
-    map_add' x y := by
-      apply toPolynomial_inj
-      simp only [toPolynomial_map, toPolynomial_add, Polynomial.map_add]
+    map_one' := by simp only [toPolynomialSimp, Polynomial.map_one]
+    map_mul' x y := by simp only [toPolynomialSimp, Polynomial.map_mul]
+    map_zero' := by simp only [toPolynomialSimp, Polynomial.map_zero]
+    map_add' x y := by simp only [toPolynomialSimp, Polynomial.map_add]
 
 def liftTo {R : Type*} [DecidableEq R] [CommSemiring R] (f : CPoly R) (S : Type*)
   [DecidableEq S] [CommSemiring S] [inst : Algebra R S] : CPoly S :=
@@ -882,7 +852,7 @@ lemma list_deriv_toFinsupp {R : Type*} [CommSemiring R] [DecidableEq R] (a : Lis
 def deriv {R : Type*} [DecidableEq R] [CommSemiring R] (f : CPoly R) : CPoly R :=
   toCPoly (list_deriv f.coefs)
 
-@[simp]
+@[toPolynomialSimp]
 lemma toPolynomial_deriv {R : Type*} [DecidableEq R] [CommSemiring R] (f : CPoly R) :
   f.deriv.toPolynomial = f.toPolynomial.derivative := by
   obtain ⟨a, _⟩ := f
@@ -896,7 +866,7 @@ def degree {R : Type*} [DecidableEq R] [CommSemiring R] : CPoly R → WithBot �
   | ⟨[], _⟩      => ⊥
   | ⟨_a :: as, _⟩ => as.length
 
-@[simp]
+@[toPolynomialSimp]
 lemma toPolynomial_degree {R : Type*} [DecidableEq R] [CommSemiring R] (f : CPoly R) :
   f.degree = f.toPolynomial.degree := by
   obtain ⟨a, ha⟩ := f
