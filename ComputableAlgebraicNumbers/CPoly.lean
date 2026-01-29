@@ -56,13 +56,11 @@ def removeTailingZeros {R : Type*} [DecidableEq R] [CommSemiring R]
     (l : List R) : List R :=
   (_removeLeadingZeros l.reverse).reverse
 
-
 lemma noTailingZero_removeTailingZeros {R : Type*} [DecidableEq R] [CommSemiring R]
     {l : List R} : noTailingZero (removeTailingZeros l) := by
   unfold noTailingZero removeTailingZeros
   rw [List.reverse_reverse]
   apply _noLeadingZero_removeLeadingZeros
-
 
 def toCPoly {R : Type*} [DecidableEq R] [CommSemiring R]
   (l : List R) : CPoly R :=
@@ -348,22 +346,23 @@ noncomputable def toPolynomial_Equiv {R : Type*} [CommSemiring R] [DecidableEq R
   CPoly R ≃ Polynomial R := Equiv.ofBijective toPolynomial toPolynomial_bij
 
 @[toPolynomialSimp]
-lemma toPolynomial_eq {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) :
+lemma toPolynomial_eq {R : Type*} [DecidableEq R] [CommSemiring R] {a b : CPoly R} :
   (a = b) = (toPolynomial a = toPolynomial b) :=
     propext toPolynomial_Equiv.apply_eq_iff_eq.symm
+
+@[toPolynomialSimp]
+lemma toPolynomial_ne {R : Type*} [DecidableEq R] [CommSemiring R] {a b : CPoly R} :
+  (a ≠ b) = (toPolynomial a ≠ toPolynomial b) := congrArg Not toPolynomial_eq
 
 def list_add (R : Type*) [CommSemiring R] : List R → List R → List R
   | []     , bs      => bs
   | as     , []      => as
   | a :: as, b :: bs => (a + b) :: (list_add R as bs)
 
-
 lemma nil_list_add {R : Type*} [CommSemiring R] {a : List R} : list_add R [] a = a := rfl
-
 
 lemma list_add_nil {R : Type*} [CommSemiring R] {a : List R} : list_add R a [] = a :=
   a.rec rfl (fun _ _ _ ↦ rfl)
-
 
 lemma cons_list_add_cons {R : Type*} [CommSemiring R] {a b : R} {as bs : List R}
   : list_add R (a :: as) (b :: bs) = (a + b) :: (list_add R as bs) := rfl
@@ -385,12 +384,10 @@ lemma list_add_toFinsupp {R : Type*} [CommSemiring R] [DecidableEq R] (a b : Lis
     List.getElem?_cons_succ] at ih ⊢
   apply ih
 
-
 def add {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : CPoly R :=
   toCPoly (list_add R a.coefs b.coefs)
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Add (CPoly R) := ⟨add⟩
-
 
 lemma add_def {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R) : a + b = add a b := rfl
 
@@ -405,11 +402,9 @@ lemma toPolynomial_add {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly
   refine coefs_toCPoly (list_add R a b) ▸ ?_
   rw [toFinsupp_coh, list_add_toFinsupp]
 
-
 def zero {R : Type*} [DecidableEq R] [CommSemiring R] : CPoly R := ⟨[], trivial⟩
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Zero (CPoly R) := ⟨zero⟩
-
 
 lemma zero_def {R : Type*} [DecidableEq R] [CommSemiring R] : (0 : CPoly R) = zero := rfl
 
@@ -422,10 +417,8 @@ def list_smul (R : Type*) [CommSemiring R] : R → List R → List R
   | _,      [] => []
   | r, a :: as => (r*a) :: (list_smul R r as)
 
-
 lemma list_smul_nil {R : Type*} [CommSemiring R] {a : R}
   : list_smul R a [] = [] := rfl
-
 
 lemma list_smul_cons {R : Type*} [CommSemiring R] {a b : R} {bs : List R}
   : list_smul R a (b :: bs) = a * b :: list_smul R a bs := rfl
@@ -730,6 +723,16 @@ lemma mul_one {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) : a * 1
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulOneClass (CPoly R) := ⟨one_mul, mul_one⟩
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MulZeroOneClass (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : Monoid (CPoly R) where
+
+@[toPolynomialSimp]
+lemma toPolynomial_npow {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) (n : ℕ) :
+  toPolynomial (a ^ n) = toPolynomial a ^ n := by
+  induction n with
+  | zero => exact toPolynomial_one
+  | succ n ih =>
+    change (a ^ n * a).toPolynomial = a.toPolynomial ^ n * a.toPolynomial
+    simp only [toPolynomialSimp, ih]
+
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : MonoidWithZero (CPoly R) where
 
 lemma mul_comm {R : Type*} [DecidableEq R] [CommSemiring R] (a b : CPoly R)
@@ -802,6 +805,34 @@ lemma toPolynomial_map {R S : Type*} [CommSemiring R] [CommSemiring S]
 
 instance {R : Type*} [DecidableEq R] [CommSemiring R] : DecidableEq (CPoly R) :=
   fun p q ↦ decidable_of_iff (p.coefs = q.coefs) (Iff.symm CPoly.ext_iff)
+
+def X {R : Type*} [DecidableEq R] [CommSemiring R] : CPoly R := toCPoly [0, 1]
+
+@[toPolynomialSimp]
+lemma toPolynomial_X {R : Type*} [DecidableEq R] [CommSemiring R] :
+  toPolynomial (X : CPoly R) = Polynomial.X := by
+  ext n
+  unfold X toPolynomial
+  rw [coefs_toCPoly, toFinsupp_coh, Polynomial.coeff_X]
+  by_cases n = 0
+  · subst n; rfl
+  by_cases n = 1;
+  · subst n; rfl
+  have : n ≥ 2 := Nat.one_lt_iff_ne_zero_and_ne_one.2 ⟨‹n ≠ 0›, ‹n ≠ 1›⟩
+  simp only [Polynomial.coeff_ofFinsupp, List.toFinsupp_apply, List.getD_eq_getElem?_getD]
+  rw [if_neg ‹n ≠ 1›.symm, List.getElem?_eq_none this, Option.getD_none]
+
+instance {R : Type*} [CommSemiring R] [DecidableEq R] [Repr R] : Repr (CPoly R) where
+  reprPrec x _ :=
+    if x = 0
+    then f!"const {repr (0 : R)}"
+    else
+      let l := (x.coefs.zip (List.range x.coefs.length)).reverse.filter (·.1 ≠ 0)
+      Std.Format.joinSep (l.map fun
+        | (a, 0) => f!"const {repr a}"
+        | (a, 1) => if a = 1 then f!"X" else f!"{repr a}*X"
+        | (a, i) => if a = 1 then f!"X^{i}" else f!"{repr a}*X^{i}"
+      ) f!" + "
 
 def lift {R S : Type*} [CommSemiring R] [CommSemiring S] [DecidableEq R] [DecidableEq S]
   (f : R →+* S) : CPoly R →+* CPoly S where
@@ -919,18 +950,240 @@ lemma toPolynomial_Monic {R : Type*} [DecidableEq R] [CommSemiring R] (p : CPoly
   unfold Monic Polynomial.Monic
   simp only [toPolynomialSimp]
 
-notation "X" => toCPoly [0, 1]
+def divByMonic_n {R : Type*} [DecidableEq R] [CommRing R] (q : CPoly R) (hq : q.Monic) :
+  ∀ (n : ℕ) (p : CPoly R), p.degree ≤ n → CPoly R
+  | 0, p, hp =>
+    if h : q.degree ≤ p.degree ∧ p ≠ 0 then p else 0
+  | n + 1, p, hp =>
+    if h : q.degree ≤ p.degree ∧ p ≠ 0 then
+      letI z := p.leadingCoeff • X ^ (p.natDegree - q.natDegree)
+      letI div := divByMonic_n q hq n (p - q * z) <| by
+        unfold z
+        have ⟨h₁, h₂⟩ := h
+        simp only [toPolynomialSimp] at *
+        rw [Polynomial.smul_eq_C_mul]
+        have := calc
+          _ < _ := Polynomial.div_wf_lemma h hq
+          _ ≤ _ := hp
+        exact Order.le_of_lt_succ this
+      z + div
+    else 0
 
-instance {R : Type*} [CommSemiring R] [DecidableEq R] [Repr R] : Repr (CPoly R) where
-  reprPrec x _ :=
-    if x = 0
-    then f!"const {repr (0 : R)}"
-    else
-      let l := (x.coefs.zip (List.range x.coefs.length)).reverse.filter (·.1 ≠ 0)
-      Std.Format.joinSep (l.map fun
-        | (a, 0) => f!"const {repr a}"
-        | (a, 1) => if a = 1 then f!"X" else f!"{repr a}*X"
-        | (a, i) => if a = 1 then f!"X^{i}" else f!"{repr a}*X^{i}"
-      ) f!" + "
+lemma zero_divByMonic_n {R : Type*} [DecidableEq R] [CommRing R] [Nontrivial R]
+  (q : CPoly R) (hq : q.Monic) (n : ℕ) : divByMonic_n q hq n 0 bot_le = 0 := by
+  unfold divByMonic_n
+  induction n with
+  | zero => simp only [ne_eq, not_true_eq_false, and_false, ↓reduceDIte]
+  | succ n _ => simp only [ne_eq, not_true_eq_false, and_false, ↓reduceDIte]
+
+lemma divByMonic_n_0 {R : Type*} [DecidableEq R] [CommRing R] (q : CPoly R) (hq : q.Monic)
+  (n : ℕ) (p : CPoly R) (hn : p.degree ≤ n) (h0 : p.degree ≤ 0) :
+  divByMonic_n q hq n p hn = divByMonic_n q hq 0 p h0 := by
+  induction n generalizing p with
+  | zero => rfl
+  | succ n ih =>
+  unfold divByMonic_n
+  split_ifs with h
+  · have : (p - q * (const p.leadingCoeff * X ^ (p.natDegree - q.natDegree))).degree ≤ 0 := by
+      simp only [toPolynomialSimp] at h hq h0 ⊢
+      exact le_of_lt <| calc
+        _ < _ := Polynomial.div_wf_lemma h hq
+        _ ≤ _ := h0
+    specialize ih (p - q * p.leadingCoeff • X ^ (p.natDegree - q.natDegree)) <| by
+      simp only [toPolynomialSimp] at h hq h0 this ⊢
+      trans 0
+      · rwa [Polynomial.smul_eq_C_mul]
+      · exact Nat.WithBot.coe_nonneg
+    specialize ih <| by
+      simp only [toPolynomialSimp] at this ⊢
+      rwa [Polynomial.smul_eq_C_mul]
+    rw [ih]
+    unfold divByMonic_n
+    have : q = 1 := by
+      have hle0 := h.1.trans h0
+      simp only [toPolynomialSimp] at hq hle0 this ⊢
+      exact Polynomial.eq_one_of_monic_natDegree_zero hq
+        (Polynomial.natDegree_eq_zero_iff_degree_le_zero.2 hle0)
+    rw [this]
+    split_ifs with h'
+    · ring_nf
+    · simp only [toPolynomialSimp] at *
+      rw [Polynomial.eq_C_of_degree_le_zero h0]
+      simp only [Polynomial.leadingCoeff_C, Polynomial.natDegree_C, Polynomial.natDegree_one,
+        tsub_self, pow_zero, Polynomial.smul_eq_C_mul, _root_.mul_one, _root_.add_zero]
+  · rfl
+
+lemma divByMonic_n_m {R : Type*} [DecidableEq R] [CommRing R] (q : CPoly R) (hq : q.Monic)
+  (n m : ℕ) (h : m ≤ n) (p : CPoly R) (hn : p.degree ≤ n) (hn_m : p.degree ≤ n - m) :
+  divByMonic_n q hq n p hn = divByMonic_n q hq (n - m) p hn_m := by
+  induction n, h using Nat.le_induction generalizing p with
+  | base =>
+    cases m with
+    | zero => rfl
+    | succ n =>
+      simp_rw [Nat.sub_self (n + 1)]
+      let n' := n + 1
+      simp_rw [show n + 1 = n' from rfl] at hn hn_m ⊢
+      apply divByMonic_n_0
+  | succ n hmn ih =>
+    simp_rw [Nat.succ_sub hmn] at hn_m ⊢
+    unfold divByMonic_n
+    split_ifs with h
+    · let z := p - q * p.leadingCoeff • X ^ (p.natDegree - q.natDegree)
+      have : p - q * p.leadingCoeff • X ^ (p.natDegree - q.natDegree) = z := rfl
+      simp_rw [this]
+      have : z.degree ≤ n - m := by
+        unfold z
+        simp only [toPolynomialSimp] at this h hq hn_m ⊢
+        have := Trans.trans (Polynomial.div_wf_lemma h hq) hn_m
+        rw [Polynomial.smul_eq_C_mul]
+        apply WithBot.le_coe_iff.2
+        intro a ha
+        rw [ha] at this
+        exact Nat.le_of_lt_succ (WithBot.coe_lt_coe.1 this)
+      specialize ih z (this.trans <| WithBot.coe_le_coe.2 (Nat.sub_le n m)) this
+      rw [ih]
+    · rfl
+
+def divByMonic {R : Type*} [DecidableEq R] [CommRing R] (p q : CPoly R) (hq : q.Monic) : CPoly R :=
+  divByMonic_n q hq p.natDegree p <| by
+    unfold natDegree
+    cases p.degree
+    · exact bot_le
+    · rfl
+
+def modByMonic {R : Type*} [DecidableEq R] [CommRing R] (p q : CPoly R) (hq : q.Monic) : CPoly R :=
+  p - q * divByMonic p q hq
+
+lemma zero_modByMonic {R : Type*} [DecidableEq R] [CommRing R] [Nontrivial R]
+  (q : CPoly R) (hq : q.Monic) : modByMonic 0 q hq = 0 := by
+  unfold modByMonic divByMonic
+  simp only [zero_sub, neg_eq_zero]
+  apply mul_eq_zero_of_right
+  simp_rw [show natDegree (0 : CPoly R) = 0 from rfl]
+  unfold divByMonic_n
+  simp only [ne_eq, not_true_eq_false, and_false, ↓reduceDIte]
+
+lemma degree_modByMonic_lt {R : Type*} [DecidableEq R] [CommRing R] [Nontrivial R]
+  (p q : CPoly R) (hq : q.Monic) : (modByMonic p q hq).degree < q.degree := by
+  have : ¬(q.degree ≤ p.degree ∧ p ≠ 0) →  p.degree < q.degree := by
+    intro h
+    by_contra h'
+    simp only [ne_eq, not_and, Decidable.not_not, not_lt] at h h'
+    have : p.degree = ⊥ := by
+      rw [h h']
+      rfl
+    have : q.degree = ⊥ := eq_bot_mono h' this
+    unfold degree at this
+    split at this
+    · unfold Monic at hq
+      have : ({coefs := [], condition := (by assumption)} : CPoly R).leadingCoeff = 0 := rfl
+      rw [hq] at this
+      exact one_ne_zero this
+    · revert this
+      simp only [WithBot.natCast_ne_bot, imp_self]
+  unfold modByMonic divByMonic
+  let n := p.natDegree
+  have hn : p.natDegree = n := rfl
+  clear_value n
+  simp_rw [hn]
+  induction n using Nat.strong_induction_on generalizing p with
+  | h n ih =>
+  cases n with
+  | zero =>
+    unfold divByMonic_n
+    split_ifs with h
+    · obtain ⟨h₁, h₂⟩ := h
+      unfold natDegree at hn
+      obtain h|h := WithBot.unbotD_eq_self_iff.1 hn
+      · simp only [toPolynomialSimp] at h h₁ hq hn this ⊢
+        rw [h] at h₁
+        have : q.toPolynomial = 1 := by
+          apply Polynomial.eq_one_of_monic_natDegree_zero hq
+          exact Polynomial.natDegree_eq_zero_iff_degree_le_zero.2 h₁
+        rw [this]
+        ring_nf
+        apply (Polynomial.modByMonic_eq_self_iff Polynomial.monic_one).mp
+        exact Polynomial.zero_modByMonic 1
+      · exfalso
+        simp only [toPolynomialSimp] at h h₂
+        exact h₂ (Polynomial.degree_eq_bot.1 h)
+    · ring_nf
+      exact this h
+  | succ n =>
+    unfold divByMonic_n
+    split_ifs with h
+    · have hp : p.degree = n + 1 := by
+        unfold natDegree at hn
+        let k := p.degree
+        rw [show p.degree = k from rfl] at hn ⊢
+        revert hn
+        induction k with
+        | bot => exact fun hn ↦ ((Nat.succ_ne_zero n).symm hn).elim
+        | coe a => exact congrArg WithBot.some
+      letI z := p - q * p.leadingCoeff • X ^ (p.natDegree - q.natDegree)
+      have hz_deg : z.natDegree < n + 1 := by
+        subst z
+        simp only [toPolynomialSimp] at h hn hp hq ⊢
+        rw [Polynomial.smul_eq_C_mul]
+        have := hp ▸ Polynomial.div_wf_lemma h hq
+        rw [Nat.lt_succ_iff]
+        apply Polynomial.natDegree_le_iff_degree_le.2
+        rw [← Order.lt_succ_iff]
+        exact this
+      simp_rw [show p - q * p.leadingCoeff • X ^ (p.natDegree - q.natDegree) = z from rfl]
+      specialize ih (p - q * p.leadingCoeff • X ^ (p.natDegree - q.natDegree)).natDegree
+        hz_deg z
+      have hzdef : p - q * p.leadingCoeff • X ^ (p.natDegree - q.natDegree) = z := rfl
+      by_cases hz0 : z = 0
+      · simp_rw [hz0]
+        rw [zero_divByMonic_n]
+        ring_nf
+        simp only [toPolynomialSimp] at h hq hz0 hzdef ⊢
+        rw [Polynomial.smul_eq_C_mul] at hzdef ⊢
+        rw [hzdef, hz0, Polynomial.degree_zero]
+        refine bot_lt_iff_ne_bot.2 (Polynomial.degree_ne_bot.2 ?_)
+        intro hq0
+        unfold Polynomial.Monic Polynomial.leadingCoeff at hq
+        rw [hq0, Polynomial.coeff_zero] at hq
+        exact one_ne_zero hq.symm
+      · specialize ih (fun h₁ ↦ Decidable.byContradiction fun h₂ ↦ h₁ ⟨not_lt.1 h₂, hz0⟩) rfl
+        simp_rw [hzdef] at ih
+        have hz_deg : z.degree ≤ n := by
+          simp only [toPolynomialSimp] at hz_deg ⊢
+          exact Polynomial.degree_le_of_natDegree_le (Nat.le_of_lt_succ hz_deg)
+        have : n - (n - z.natDegree) = z.natDegree := by
+          apply Nat.sub_sub_self
+          simp only [toPolynomialSimp] at hz_deg ⊢
+          exact Polynomial.natDegree_le_of_degree_le hz_deg
+        rw [divByMonic_n_m q hq n (n - z.natDegree) (Nat.sub_le _ _) z hz_deg] <;> simp_rw [this]
+        · simp_rw [mul_add]
+          rwa [← sub_sub, hzdef]
+        · simp only [toPolynomialSimp, Polynomial.degree_le_natDegree]
+    · ring_nf
+      exact this h
+
+lemma toPolynomial_div_modByMonic {R : Type*} [DecidableEq R] [CommRing R] [Nontrivial R]
+  (p q : CPoly R) (hq : q.Monic) : p.toPolynomial.divByMonic q.toPolynomial =
+  (p.divByMonic q hq).toPolynomial ∧ p.toPolynomial.modByMonic q.toPolynomial =
+  (p.modByMonic q hq).toPolynomial := Polynomial.div_modByMonic_unique
+  (p.divByMonic q hq).toPolynomial (p.modByMonic q hq).toPolynomial (toPolynomial_Monic q ▸ hq) <|
+  by
+    constructor
+    · unfold modByMonic
+      simp only [toPolynomialSimp]
+      ring
+    · simp_rw [← toPolynomial_degree]
+      exact degree_modByMonic_lt p q hq
+
+@[toPolynomialSimp]
+lemma toPolynomial_divByMonic {R : Type*} [DecidableEq R] [CommRing R] [Nontrivial R]
+  (p q : CPoly R) (hq : q.Monic) : toPolynomial (p.divByMonic q hq) =
+  p.toPolynomial.divByMonic q.toPolynomial := (toPolynomial_div_modByMonic p q hq).1.symm
+
+@[toPolynomialSimp]
+lemma toPolynomial_modByMonic {R : Type*} [DecidableEq R] [CommRing R] [Nontrivial R]
+  (p q : CPoly R) (hq : q.Monic) : toPolynomial (p.modByMonic q hq) =
+  p.toPolynomial.modByMonic q.toPolynomial := (toPolynomial_div_modByMonic p q hq).2.symm
 
 end CPoly
