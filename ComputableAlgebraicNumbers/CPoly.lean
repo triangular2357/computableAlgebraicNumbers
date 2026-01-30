@@ -1163,12 +1163,14 @@ lemma degree_modByMonic_lt {R : Type*} [DecidableEq R] [CommRing R] [Nontrivial 
     · ring_nf
       exact this h
 
-lemma toPolynomial_div_modByMonic {R : Type*} [DecidableEq R] [CommRing R] [Nontrivial R]
+lemma toPolynomial_div_modByMonic {R : Type*} [DecidableEq R] [CommRing R]
   (p q : CPoly R) (hq : q.Monic) : p.toPolynomial.divByMonic q.toPolynomial =
   (p.divByMonic q hq).toPolynomial ∧ p.toPolynomial.modByMonic q.toPolynomial =
-  (p.modByMonic q hq).toPolynomial := Polynomial.div_modByMonic_unique
-  (p.divByMonic q hq).toPolynomial (p.modByMonic q hq).toPolynomial (toPolynomial_Monic q ▸ hq) <|
-  by
+  (p.modByMonic q hq).toPolynomial := by
+  cases subsingleton_or_nontrivial R
+  · constructor <;> apply Subsingleton.allEq
+  · apply Polynomial.div_modByMonic_unique (p.divByMonic q hq).toPolynomial
+      (p.modByMonic q hq).toPolynomial (toPolynomial_Monic q ▸ hq)
     constructor
     · unfold modByMonic
       simp only [toPolynomialSimp]
@@ -1177,13 +1179,205 @@ lemma toPolynomial_div_modByMonic {R : Type*} [DecidableEq R] [CommRing R] [Nont
       exact degree_modByMonic_lt p q hq
 
 @[toPolynomialSimp]
-lemma toPolynomial_divByMonic {R : Type*} [DecidableEq R] [CommRing R] [Nontrivial R]
+lemma toPolynomial_divByMonic {R : Type*} [DecidableEq R] [CommRing R]
   (p q : CPoly R) (hq : q.Monic) : toPolynomial (p.divByMonic q hq) =
   p.toPolynomial.divByMonic q.toPolynomial := (toPolynomial_div_modByMonic p q hq).1.symm
 
 @[toPolynomialSimp]
-lemma toPolynomial_modByMonic {R : Type*} [DecidableEq R] [CommRing R] [Nontrivial R]
+lemma toPolynomial_modByMonic {R : Type*} [DecidableEq R] [CommRing R]
   (p q : CPoly R) (hq : q.Monic) : toPolynomial (p.modByMonic q hq) =
   p.toPolynomial.modByMonic q.toPolynomial := (toPolynomial_div_modByMonic p q hq).2.symm
+
+def div {R : Type*} [DecidableEq R] [Field R] (p q : CPoly R) : CPoly R :=
+  if h : q = 0 then 0 else
+  haveI := by
+    simp only [toPolynomialSimp] at h ⊢
+    apply Polynomial.monic_mul_leadingCoeff_inv h
+  const q.leadingCoeff⁻¹ * p.divByMonic (q * const q.leadingCoeff⁻¹) this
+
+def mod {R : Type*} [DecidableEq R] [Field R] (p q : CPoly R) : CPoly R :=
+  if h : q = 0 then p else
+  haveI := by
+    simp only [toPolynomialSimp] at h ⊢
+    apply Polynomial.monic_mul_leadingCoeff_inv h
+  p.modByMonic (q * const q.leadingCoeff⁻¹) this
+
+@[toPolynomialSimp]
+lemma toPolynomial_div {R : Type*} [DecidableEq R] [Field R] (p q : CPoly R) :
+  toPolynomial (p.div q) = p.toPolynomial.div q.toPolynomial := by
+  unfold div Polynomial.div
+  split_ifs
+  · simp only [toPolynomial_zero, ‹q = 0›, Polynomial.leadingCoeff_zero, inv_zero, map_zero,
+      MulZeroClass.mul_zero, Polynomial.divByMonic_zero]
+  · simp only [toPolynomialSimp]
+
+@[toPolynomialSimp]
+lemma toPolynomial_mod {R : Type*} [DecidableEq R] [Field R] (p q : CPoly R) :
+  toPolynomial (p.mod q) = p.toPolynomial.mod q.toPolynomial := by
+  unfold mod Polynomial.mod
+  split_ifs
+  · simp only [‹q = 0›, toPolynomial_zero, Polynomial.leadingCoeff_zero, inv_zero, map_zero,
+    MulZeroClass.mul_zero, Polynomial.modByMonic_zero]
+  · simp only [toPolynomialSimp]
+
+instance {R : Type*} [DecidableEq R] [Field R] : Nontrivial (CPoly R) := by
+  constructor
+  use 1, 0
+  simp only [toPolynomialSimp]
+  exact one_ne_zero
+
+instance {R : Type*} [DecidableEq R] [Field R] : EuclideanDomain (CPoly R) where
+  quotient := div
+  quotient_zero := by
+    simp only [div, ↓reduceDIte, implies_true]
+  remainder := mod
+  quotient_mul_add_remainder_eq := by
+    intro a b
+    unfold div mod modByMonic
+    split_ifs <;> ring
+  r p q := p.degree < q.degree
+  r_wellFounded := by
+    refine (Function.Surjective.wellFounded_iff toPolynomial_sur ?_).2 Polynomial.degree_lt_wf
+    simp only [toPolynomialSimp, implies_true]
+  remainder_lt := by
+    intro a b h
+    simp only [toPolynomialSimp] at h ⊢
+    apply Polynomial.degree_mod_lt _ h
+  mul_left_not_lt := by
+    intro a b h
+    apply not_lt_of_ge
+    simp only [toPolynomialSimp] at h ⊢
+    apply Polynomial.degree_le_mul_left _ h
+
+example {R : Type*} [DecidableEq R] [Field R] (a : Polynomial R) :
+  normalize a = a * Polynomial.C a.leadingCoeff⁻¹ := by
+  by_cases h : a = 0
+  · subst a
+    simp only [map_zero, Polynomial.leadingCoeff_zero, inv_zero, MulZeroClass.mul_zero]
+  · have := Polynomial.leadingCoeff_ne_zero.2 h
+    apply Polynomial.eq_of_monic_of_associated (Polynomial.monic_normalize h)
+    · unfold Polynomial.Monic
+      rw [Polynomial.leadingCoeff_mul, Polynomial.leadingCoeff_C, mul_inv_cancel₀ this]
+    · apply associated_of_dvd_dvd
+      · apply normalize_dvd_iff.2 <| dvd_mul_right a _
+      · refine dvd_normalize_iff.2 ((Polynomial.dvd_mul_leadingCoeff_inv h).1 <| by rfl)
+
+instance {R : Type*} [DecidableEq R] [Field R] : NormalizationMonoid (CPoly R) where
+  normUnit p := {
+    val := if p = 0 then 1 else const p.leadingCoeff⁻¹
+    inv := if p = 0 then 1 else const p.leadingCoeff
+    val_inv := by
+      split_ifs with h
+      · simp only [_root_.mul_one]
+      · simp only [toPolynomialSimp] at h ⊢
+        rw [← Polynomial.C_mul, inv_mul_cancel₀, map_one]
+        exact Polynomial.leadingCoeff_ne_zero.2 h
+    inv_val := by
+      split_ifs with h
+      · simp only [_root_.mul_one]
+      · simp only [toPolynomialSimp] at h ⊢
+        rw [← Polynomial.C_mul, mul_inv_cancel₀, map_one]
+        exact Polynomial.leadingCoeff_ne_zero.2 h
+  }
+  normUnit_zero := rfl
+  normUnit_mul := by
+    intro a b ha0 hb0
+    apply Units.ext
+    simp only [mul_eq_zero, Units.val_mul, mul_ite, _root_.mul_one, ite_mul, _root_.one_mul]
+    split_ifs with h
+    · tauto
+    · simp only [toPolynomial_leadingCoeff, toPolynomial_mul, Polynomial.leadingCoeff_mul,
+      mul_inv_rev, toPolynomial_eq, toPolynomial_const, map_mul]
+      ring
+  normUnit_coe_units := by
+    intro u
+    apply Units.ext
+    simp only [Units.ne_zero, ↓reduceIte]
+    apply mul_left_cancel₀ (Units.ne_zero u)
+    simp only [Units.mul_inv]
+    let u' : Units (Polynomial R) := {
+      val := u.val.toPolynomial
+      inv := u.inv.toPolynomial
+      val_inv := by
+        have := u.val_inv
+        simp only [toPolynomialSimp] at this
+        assumption
+      inv_val := by
+        have := u.inv_val
+        simp only [toPolynomialSimp] at this
+        assumption
+    }
+    obtain ⟨u'c, h₁, h₂⟩ := Polynomial.isUnit_iff.1 u'.isUnit
+    simp only [toPolynomialSimp]
+    rw [show u.val.toPolynomial = u'.val from rfl, ← h₂, ← Polynomial.C_mul, ← Polynomial.C_1,
+      Polynomial.C_inj.2]
+    rw [Polynomial.leadingCoeff_C, mul_inv_cancel₀]
+    exact IsUnit.ne_zero h₁
+
+lemma Monic_normalize {R : Type*} [DecidableEq R] [Field R] (p : CPoly R) :
+  p ≠ 0 → (normalize p).Monic := by
+  intro h
+  unfold normalize normUnit instNormalizationMonoid Monic
+  simp only [mul_ite, _root_.mul_one, MonoidWithZeroHom.coe_mk, ZeroHom.coe_mk, h, ↓reduceIte]
+  simp only [toPolynomialSimp] at h ⊢
+  simp only [Polynomial.leadingCoeff_mul, Polynomial.leadingCoeff_C,
+    mul_inv_cancel₀ (Polynomial.leadingCoeff_ne_zero.2 h)]
+
+instance {R : Type*} [DecidableEq R] [Field R] : GCDMonoid (CPoly R) where
+  gcd p q := normalize (EuclideanDomain.gcd p q)
+  lcm p q := normalize (EuclideanDomain.lcm p q)
+  gcd_dvd_left := fun a b ↦ normalize_dvd_iff.2 (EuclideanDomain.gcd_dvd_left a b)
+  gcd_dvd_right := fun a b ↦ normalize_dvd_iff.2 (EuclideanDomain.gcd_dvd_right a b)
+  dvd_gcd := fun hc hb ↦ dvd_normalize_iff.2 (EuclideanDomain.dvd_gcd hc hb)
+  gcd_mul_lcm := by
+    intro a b
+    apply associated_of_dvd_dvd
+    · rw [← map_mul normalize _ _]
+      apply normalize_dvd_iff.2
+      rw [EuclideanDomain.gcd_mul_lcm]
+    · rw [← map_mul normalize _ _]
+      apply dvd_normalize_iff.2
+      rw [EuclideanDomain.gcd_mul_lcm]
+  lcm_zero_left := fun a ↦ (EuclideanDomain.lcm_zero_left a).symm ▸ rfl
+  lcm_zero_right := fun a ↦ (EuclideanDomain.lcm_zero_right a).symm ▸ rfl
+
+instance {R : Type*} [DecidableEq R] [Field R] : NormalizedGCDMonoid (CPoly R) where
+  normalize_gcd := fun _ _ ↦ normalize_idem _
+  normalize_lcm := fun _ _ ↦ normalize_idem _
+
+@[toPolynomialSimp]
+lemma toPolynomial_dvd {R : Type*} [DecidableEq R] [CommSemiring R] (p q : CPoly R) :
+  (p ∣ q) = (p.toPolynomial ∣ q.toPolynomial) :=
+  haveI : MulEquivClass (CPoly R ≃+* Polynomial R) .. := ⟨RingEquiv.map_mul⟩
+  propext (map_dvd_iff toPolynomial_ringEquiv).symm
+
+@[toPolynomialSimp]
+lemma toPolynomial_gcd {R : Type*} [DecidableEq R] [Field R] (p q : CPoly R) :
+  toPolynomial (gcd p q) = gcd p.toPolynomial q.toPolynomial := by
+  by_cases h : p = 0 ∧ q = 0
+  · simp only [h.1, h.2, gcd_same, map_zero, toPolynomial_zero]
+  · apply Polynomial.eq_of_monic_of_associated
+    · rw [show gcd p q = normalize (EuclideanDomain.gcd p q) from rfl, ← toPolynomial_Monic]
+      apply Monic_normalize
+      exact EuclideanDomain.gcd_eq_zero_iff.not.2 h
+    · simp only [toPolynomialSimp] at h
+      rw [← normalize_gcd]
+      apply Polynomial.monic_normalize
+      exact (gcd_eq_zero_iff _ _).not.2 h
+    · apply associated_of_dvd_dvd
+      · apply dvd_gcd
+        · rw [← toPolynomial_dvd]
+          exact gcd_dvd_left p q
+        · rw [← toPolynomial_dvd]
+          exact gcd_dvd_right p q
+      · letI fp := (toPolynomial_Equiv (R := R)).invFun
+        have : ∀ a, a = (fp a).toPolynomial :=
+          fun a ↦ ((toPolynomial_Equiv (R := R)).right_inv a).symm
+        rw [this (gcd p.toPolynomial q.toPolynomial), this ((gcd p q).toPolynomial),
+          ← toPolynomial_dvd, show fp (gcd p q).toPolynomial = gcd p q from (toPolynomial_Equiv
+          (R := R)).left_inv (gcd p q)]
+        apply dvd_gcd <;> rw [toPolynomial_dvd, ← this (gcd p.toPolynomial q.toPolynomial)]
+        · exact gcd_dvd_left ..
+        · exact gcd_dvd_right ..
 
 end CPoly
