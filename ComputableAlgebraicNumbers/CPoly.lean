@@ -1195,6 +1195,18 @@ def div {R : Type*} [DecidableEq R] [Field R] (p q : CPoly R) : CPoly R :=
     apply Polynomial.monic_mul_leadingCoeff_inv h
   const q.leadingCoeff⁻¹ * p.divByMonic (q * const q.leadingCoeff⁻¹) this
 
+instance {R : Type*} [DecidableEq R] [Field R] : Div (CPoly R) := ⟨div⟩
+
+@[toPolynomialSimp]
+lemma toPolynomial_div {R : Type*} [DecidableEq R] [Field R] (p q : CPoly R) :
+  toPolynomial (p / q) = p.toPolynomial / q.toPolynomial := by
+  simp only [(· / ·), Div.div]
+  unfold div Polynomial.div
+  split_ifs
+  · simp only [toPolynomial_zero, ‹q = 0›, Polynomial.leadingCoeff_zero, inv_zero, map_zero,
+      MulZeroClass.mul_zero, Polynomial.divByMonic_zero]
+  · simp only [toPolynomialSimp]
+
 def mod {R : Type*} [DecidableEq R] [Field R] (p q : CPoly R) : CPoly R :=
   if h : q = 0 then p else
   haveI := by
@@ -1202,18 +1214,12 @@ def mod {R : Type*} [DecidableEq R] [Field R] (p q : CPoly R) : CPoly R :=
     apply Polynomial.monic_mul_leadingCoeff_inv h
   p.modByMonic (q * const q.leadingCoeff⁻¹) this
 
-@[toPolynomialSimp]
-lemma toPolynomial_div {R : Type*} [DecidableEq R] [Field R] (p q : CPoly R) :
-  toPolynomial (p.div q) = p.toPolynomial.div q.toPolynomial := by
-  unfold div Polynomial.div
-  split_ifs
-  · simp only [toPolynomial_zero, ‹q = 0›, Polynomial.leadingCoeff_zero, inv_zero, map_zero,
-      MulZeroClass.mul_zero, Polynomial.divByMonic_zero]
-  · simp only [toPolynomialSimp]
+instance {R : Type*} [DecidableEq R] [Field R] : Mod (CPoly R) := ⟨mod⟩
 
 @[toPolynomialSimp]
 lemma toPolynomial_mod {R : Type*} [DecidableEq R] [Field R] (p q : CPoly R) :
-  toPolynomial (p.mod q) = p.toPolynomial.mod q.toPolynomial := by
+  toPolynomial (p % q) = p.toPolynomial % q.toPolynomial := by
+  simp only [(· % ·), Mod.mod]
   unfold mod Polynomial.mod
   split_ifs
   · simp only [‹q = 0›, toPolynomial_zero, Polynomial.leadingCoeff_zero, inv_zero, map_zero,
@@ -1227,12 +1233,13 @@ instance {R : Type*} [DecidableEq R] [Field R] : Nontrivial (CPoly R) := by
   exact one_ne_zero
 
 instance {R : Type*} [DecidableEq R] [Field R] : EuclideanDomain (CPoly R) where
-  quotient := div
+  quotient a b := a / b
   quotient_zero := by
-    simp only [div, ↓reduceDIte, implies_true]
-  remainder := mod
+    simp only [HDiv.hDiv, Div.div, div, ↓reduceDIte, implies_true]
+  remainder a b := a % b
   quotient_mul_add_remainder_eq := by
     intro a b
+    simp only [HDiv.hDiv, Div.div, HMod.hMod, Mod.mod]
     unfold div mod modByMonic
     split_ifs <;> ring
   r p q := p.degree < q.degree
@@ -1379,5 +1386,169 @@ lemma toPolynomial_gcd {R : Type*} [DecidableEq R] [Field R] (p q : CPoly R) :
         apply dvd_gcd <;> rw [toPolynomial_dvd, ← this (gcd p.toPolynomial q.toPolynomial)]
         · exact gcd_dvd_left ..
         · exact gcd_dvd_right ..
+
+@[toPolynomialSimp]
+lemma toPolynomial_IsUnit {R : Type*} [DecidableEq R] [CommSemiring R] (p : CPoly R) :
+  IsUnit p = IsUnit p.toPolynomial := by
+  unfold IsUnit
+  refine propext ⟨?_, ?_⟩
+  · intro ⟨u, hu⟩
+    use {
+      val := u.val.toPolynomial
+      inv := u.inv.toPolynomial
+      val_inv := by
+        have := u.val_inv
+        simp only [toPolynomialSimp] at this
+        assumption
+      inv_val := by
+        have := u.inv_val
+        simp only [toPolynomialSimp] at this
+        assumption
+    }
+    exact congrArg toPolynomial hu
+  · intro ⟨u, hu⟩
+    use {
+      val := toPolynomial_Equiv.invFun u.val
+      inv := toPolynomial_Equiv.invFun u.inv
+      val_inv := by
+        simp only [toPolynomialSimp]
+        rw [show toPolynomial = toPolynomial_Equiv.toFun from rfl,
+          toPolynomial_Equiv.right_inv u.val, toPolynomial_Equiv.right_inv u.inv, u.val_inv]
+      inv_val := by
+        simp only [toPolynomialSimp]
+        rw [show toPolynomial = toPolynomial_Equiv.toFun from rfl,
+        toPolynomial_Equiv.right_inv u.val, toPolynomial_Equiv.right_inv u.inv, u.inv_val]
+    }
+    simp only [hu, show toPolynomial = toPolynomial_Equiv.toFun from rfl,
+      toPolynomial_Equiv.left_inv p]
+
+@[toPolynomialSimp]
+lemma toPolynomial_Irreducible {R : Type*} [DecidableEq R] [CommSemiring R] (p : CPoly R) :
+  Irreducible p = Irreducible p.toPolynomial := by
+  simp only [irreducible_iff, toPolynomial_IsUnit, toPolynomial_eq, toPolynomial_mul, eq_iff_iff,
+    and_congr_right_iff]
+  intro
+  constructor <;> intro h a b
+  · specialize @h (toPolynomial_Equiv.invFun a) (toPolynomial_Equiv.invFun b)
+    simp only [show toPolynomial = toPolynomial_Equiv.toFun from rfl,
+      toPolynomial_Equiv.right_inv a, toPolynomial_Equiv.right_inv b] at h
+    exact h
+  · apply h
+
+instance {R : Type*} [DecidableEq R] [CommRing R] [IsDomain R] : IsDomain (CPoly R) where
+  mul_left_cancel_of_ne_zero := by
+    intro a ha x y h
+    simp only [toPolynomialSimp] at *
+    haveI : IsDomain (Polynomial R) := inferInstance
+    apply this.mul_left_cancel_of_ne_zero ha h
+  mul_right_cancel_of_ne_zero := by
+    intro a ha x y h
+    simp only [toPolynomialSimp] at *
+    haveI : IsDomain (Polynomial R) := inferInstance
+    apply this.mul_right_cancel_of_ne_zero ha h
+  exists_pair_ne := by
+    use 1, 0
+    simp only [toPolynomialSimp] at *
+    exact one_ne_zero
+
+instance {R : Type*} [DecidableEq R] [CommRing R] [IsDomain R] [UniqueFactorizationMonoid R] :
+  UniqueFactorizationMonoid (CPoly R) := by
+  haveI : UniqueFactorizationMonoid (Polynomial R) := inferInstance
+  apply UniqueFactorizationMonoid.of_exists_prime_factors
+  intro a ha
+  obtain ⟨f, hf₁, hf₂⟩ := this.exists_prime_factors a.toPolynomial <| cast toPolynomial_ne ha
+  use (f.map toPolynomial_ringEquiv.symm)
+  constructor
+  · intro b hb
+    rw [Multiset.mem_map] at hb
+    obtain ⟨b', hb', hbb'⟩ := hb
+    have := toPolynomial_ringEquiv.eq_symm_apply.1 hbb'.symm
+    rw [show toPolynomial_ringEquiv b = toPolynomial b from rfl] at this
+    unfold Prime
+    simp only [toPolynomialSimp]
+    specialize hf₁ b.toPolynomial (this ▸ hb')
+    use hf₁.1, hf₁.2.1, fun a c ↦ hf₁.2.2 a.toPolynomial c.toPolynomial
+  · obtain ⟨u, hu⟩ := hf₂
+    use {
+      val := toPolynomial_ringEquiv.invFun u.val
+      inv := toPolynomial_ringEquiv.invFun u.inv
+      val_inv := by
+        simp only [toPolynomialSimp]
+        rw [show toPolynomial = toPolynomial_ringEquiv.toFun from rfl,
+          toPolynomial_ringEquiv.right_inv u.val, toPolynomial_ringEquiv.right_inv u.inv, u.val_inv]
+      inv_val := by
+        simp only [toPolynomialSimp]
+        rw [show toPolynomial = toPolynomial_ringEquiv.toFun from rfl,
+        toPolynomial_ringEquiv.right_inv u.val, toPolynomial_ringEquiv.right_inv u.inv, u.inv_val]
+    }
+    simp only [Equiv.invFun_as_coe, toPolynomialSimp, ← hu]
+    congr
+    · rw [← Multiset.prod_map_toList, ← Multiset.prod_toList,
+        List.prod_hom f.toList toPolynomial_ringEquiv.symm]
+      apply toPolynomial_ringEquiv.right_inv
+    · apply toPolynomial_ringEquiv.right_inv
+
+@[toPolynomialSimp]
+lemma toPolynomial_Squarefree {R : Type*} [DecidableEq R] [CommSemiring R] (p : CPoly R) :
+  Squarefree p = Squarefree p.toPolynomial := by
+  refine propext ⟨?_, ?_⟩ <;> unfold Squarefree <;> simp only [toPolynomialSimp] <;> intro h x hx
+  · specialize h (toPolynomial_Equiv.invFun x)
+    have : (toPolynomial_Equiv.invFun x).toPolynomial = x := by
+      apply toPolynomial_Equiv.right_inv
+    rw [this] at h
+    exact h hx
+  · exact h x.toPolynomial hx
+
+lemma squarefree_div_gcd_deriv {R : Type*} [DecidableEq R] [Field R] (f : CPoly R) :
+  f ≠ 0 → Squarefree (f / gcd f f.deriv) := by
+  simp only [toPolynomialSimp]
+  intro hf
+  apply (squarefree_iff_emultiplicity_le_one _).2
+  intro x
+  by_cases IsUnit x
+  · exact Or.inr ‹IsUnit x›
+  · left
+    let d := gcd f.toPolynomial f.toPolynomial.derivative
+    rw [show gcd f.toPolynomial f.toPolynomial.derivative = d from rfl]
+    let r := f.toPolynomial / d
+    rw [show f.toPolynomial / d = r from rfl]
+    have hfdr := (EuclideanDomain.div_eq_iff_eq_mul_of_dvd
+      f.toPolynomial d r (gcd_ne_zero_of_left hf)
+      (gcd_dvd_left ..)).1 rfl
+    let k := emultiplicity x f.toPolynomial
+    have hk : k = emultiplicity x f.toPolynomial := rfl
+    revert hk
+    cases k with
+    | top =>
+      intro h
+      have := emultiplicity_eq_top.1 h.symm
+      have := FiniteMultiplicity.of_not_isUnit ‹¬IsUnit x› hf
+      contradiction
+    | coe a =>
+    intro hm
+    have : emultiplicity x r ≤ a := hm ▸ emultiplicity_le_emultiplicity_of_dvd_right (a := x)
+      (EuclideanDomain.div_dvd_of_dvd (gcd_dvd_left f.toPolynomial f.toPolynomial.derivative))
+    cases a with
+    | zero =>
+      apply this.trans
+      exact right_eq_inf.1 rfl
+    | succ n =>
+      have := Nat.add_sub_self_right n 1 ▸ Polynomial.pow_sub_one_dvd_derivative_of_pow_dvd
+        (pow_dvd_of_le_emultiplicity (le_of_eq hm))
+      have : x ^ n ∣ d := by
+        apply dvd_gcd
+        · apply pow_dvd_of_le_emultiplicity
+          rw [← hm]
+          apply ENat.coe_le_coe.2 (Nat.le_succ n)
+        · assumption
+      have ⟨h1, h2⟩ := emultiplicity_eq_coe.1 hm.symm
+      apply Order.le_of_lt_succ
+      by_contra h
+      simp only [not_lt] at h
+      have := mul_dvd_mul this (pow_dvd_of_le_emultiplicity h)
+      simp only [Nat.succ_eq_succ, Nat.succ_eq_add_one, Nat.reduceAdd, ← hfdr] at this
+      apply h2
+      ring_nf at *
+      assumption
 
 end CPoly
