@@ -642,33 +642,6 @@ def list_eval_coh {R : Type*} [DecidableEq R] [CommSemiring R] {a : List R} {b :
       · rw [if_neg h, list_eval_cons, ih]
     · rw [removeTailingZeros_cons_of_ne_zero h, list_eval_cons, ih]
 
-def list_eval_list_add {R : Type*} [DecidableEq R] [CommSemiring R] {a b : List R} {x : R}
-  : list_eval R (list_add R a b) x = list_eval R a x + list_eval R b x := by
-  induction a generalizing b with
-  | nil => simp only [nil_list_add, list_eval_nil, zero_add]
-  | cons a₀ a' ih =>
-  induction  b with
-  | nil => simp only [list_add_nil, list_eval_nil, add_zero]
-  | cons b₀ b' _ =>
-    simp only [cons_list_add_cons, list_eval_cons, ih]
-    ring
-
-def list_eval_list_smul {R : Type*} [DecidableEq R] [CommSemiring R] {a : R} {b : List R} {x : R}
-  : list_eval R (list_smul R a b) x = a * list_eval R b x := by
-  induction b with
-  | nil => simp only [list_smul_nil, list_eval_nil, mul_zero]
-  | cons head tail ih =>
-    simp only [list_smul_cons, list_eval_cons, ih]
-    ring
-
-def list_eval_list_mul {R : Type*} [DecidableEq R] [CommSemiring R] {a b : List R} {x : R}
-  : list_eval R (list_mul R a b) x = list_eval R a x * list_eval R b x := by
-  induction a with
-  | nil => simp only [nil_list_mul, list_eval_nil, zero_mul]
-  | cons head tail ih =>
-    simp only [cons_list_mul, list_eval_list_add, list_eval_list_smul, list_eval_cons, ih, zero_add]
-    ring
-
 def eval {R : Type*} [DecidableEq R] [CommSemiring R] (a : CPoly R) (b : R) : R :=
   list_eval R a.coefs b
 
@@ -922,6 +895,52 @@ lemma toPolynomial_degree {R : Type*} [DecidableEq R] [CommSemiring R] (f : CPol
       intro i hi
       simp only [Finset.mem_filter, Finset.mem_range] at hi
       apply WithBot.coe_le_coe.2 (Nat.le_of_lt_succ hi.1)
+
+@[toPolynomialSimp]
+lemma toPolynomial_eval {R : Type*} [DecidableEq R] [CommRing R] (a : CPoly R) (b : R) :
+  a.eval b = a.toPolynomial.eval b := by
+  by_cases h : a = 0
+  · subst a
+    simp only [toPolynomialSimp, Polynomial.eval_zero]
+    rfl
+  · rw [Polynomial.eval_eq_sum, Polynomial.sum_over_range' a.toPolynomial ?_ a.coefs.length]
+    · unfold eval toPolynomial
+      let a' := a.coefs
+      rw [show a.coefs = a' from rfl]
+      induction a' with
+      | nil =>
+        simp only [List.length_nil, Finset.range_zero, List.toFinsupp_nil,
+          Polynomial.ofFinsupp_zero, Polynomial.coeff_zero, MulZeroClass.zero_mul,
+          Finset.sum_const_zero]
+        rfl
+      | cons head tail ih =>
+        unfold list_eval
+        simp only [List.length_cons, Polynomial.coeff_ofFinsupp, Finset.sum_range_succ']
+        simp only [List.toFinsupp_apply, List.getD_eq_getElem?_getD]
+        simp only [List.getElem?_cons_succ, List.length_cons, lt_add_iff_pos_left, add_pos_iff,
+          zero_lt_one, or_true, getElem?_pos, List.getElem_cons_zero, Option.getD_some, pow_zero,
+          _root_.mul_one]
+        simp only [Polynomial.coeff_ofFinsupp, List.toFinsupp_apply,
+          List.getD_eq_getElem?_getD] at ih
+        rw [ih, Finset.mul_sum]
+        ring_nf
+    · refine (Polynomial.natDegree_lt_iff_degree_lt ?_).2 ?_
+      · simp only [toPolynomialSimp] at h
+        assumption
+      · rw [← toPolynomial_degree]
+        unfold degree
+        split
+        · apply WithBot.bot_lt_coe
+        · simp only [List.length_cons, Nat.cast_add, Nat.cast_one]
+          apply Order.lt_succ
+    · intro
+      ring
+
+lemma toPolynomial_liftTo_eval_eq_eval₂ {R : Type*} [DecidableEq R] [CommRing R] (f : CPoly R)
+  {S : Type*} [DecidableEq S] [CommRing S] [inst : Algebra R S] (x : S) :
+  (f.liftTo S).eval x = Polynomial.eval₂ (algebraMap R S) x f.toPolynomial := by
+  rw [show f.liftTo S = map (algebraMap R S) f from rfl, Polynomial.eval₂_eq_eval_map,
+    toPolynomial_eval, toPolynomial_map]
 
 def natDegree {R : Type*} [DecidableEq R] [CommSemiring R] (p : CPoly R) : ℕ :=
   (degree p).unbotD 0
