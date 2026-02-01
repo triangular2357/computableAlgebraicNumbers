@@ -105,3 +105,28 @@ instance (ε : ℚ) (h : ε > 0) :
       intro p hp
       grw [← intervalLength_improve, hp]
       simp only [half_lt_self_iff, h]
+
+structure PolyLevelFun' (rootFun : ℝ → ℝ) where
+  semiMonotone : ∀ x a b, x ∈ Set.uIcc a b → rootFun x ∈ Set.uIcc (rootFun a) (rootFun b)
+  polyFun : CPoly ℚ → CPoly ℚ
+  neZero : ∀ p, p ≠ 0 → polyFun p ≠ 0
+  preservesRoots : ∀ x f, (f.liftTo ℝ).eval x = 0 → ((polyFun f).liftTo ℝ).eval (rootFun x) = 0
+
+structure PolyLevelFun (rootFun : ℝ → ℝ) extends PolyLevelFun' (rootFun : ℝ → ℝ) where
+  squarefree : ∀ p, p ≠ 0 → Squarefree (polyFun p)
+
+def squarefreeify {rootFun : ℝ → ℝ} (plf : PolyLevelFun' (rootFun : ℝ → ℝ)) :
+  PolyLevelFun (rootFun : ℝ → ℝ) where
+  semiMonotone := plf.semiMonotone
+  polyFun p := plf.polyFun p / gcd (plf.polyFun p) (plf.polyFun p).deriv
+  neZero := by
+    intro p hp
+    have := CPoly.squarefree_div_gcd_deriv (plf.polyFun p) (plf.neZero p hp)
+    exact Squarefree.ne_zero this
+  preservesRoots := by
+    intro x f hf
+    apply CPoly.eval_div_gcd_deriv_eq_zero_of_eval_eq_zero
+    exact plf.preservesRoots x f hf
+  squarefree := by
+    intro p hp
+    apply CPoly.squarefree_div_gcd_deriv (plf.polyFun p) (plf.neZero p hp)

@@ -1570,4 +1570,78 @@ lemma squarefree_div_gcd_deriv {R : Type*} [DecidableEq R] [Field R] (f : CPoly 
       ring_nf at *
       assumption
 
+lemma eval_div_gcd_deriv_eq_zero_of_eval_eq_zero {R S : Type*} [DecidableEq R] [Field R]
+  (f : CPoly R) [DecidableEq S] [Field S] [CharZero S] [Algebra R S] (x : S) :
+  (f.liftTo S).eval x = 0 → ((f / gcd f f.deriv).liftTo S).eval x = 0 := by
+  by_cases hf : f = 0
+  · subst f
+    simp only [gcd_zero_left, EuclideanDomain.zero_div, imp_self]
+  · simp only [toPolynomialSimp, toPolynomial_liftTo_eval_eq_eval₂,
+      Polynomial.eval₂_eq_eval_map]
+    have : Polynomial.map (algebraMap R S) f.toPolynomial ≠ 0 := by
+      simp only [toPolynomialSimp] at hf
+      simp only [ne_eq, Polynomial.map_eq_zero, hf, not_false_eq_true]
+    have := Polynomial.rootMultiplicity_pos (x := x) this
+    unfold Polynomial.IsRoot at this
+    intro h
+    have h' := Polynomial.derivative_rootMultiplicity_of_root h
+    rw [← this] at h
+    have : Polynomial.map (algebraMap R S) (f.toPolynomial / gcd f.toPolynomial
+      (Polynomial.derivative f.toPolynomial)) ≠ 0 := by
+      simp only [ne_eq, Polynomial.map_eq_zero]
+      apply Squarefree.ne_zero
+      have := squarefree_div_gcd_deriv f hf
+      simp only [toPolynomialSimp] at this
+      assumption
+    have := Polynomial.rootMultiplicity_pos (x := x) this
+    unfold Polynomial.IsRoot at this
+    rw [← this]
+    iterate 4 clear this
+    let n_f := Polynomial.rootMultiplicity x (Polynomial.map (algebraMap R S) f.toPolynomial)
+    have hn_f : Polynomial.rootMultiplicity x (Polynomial.map (algebraMap R S) f.toPolynomial) =
+      n_f := rfl
+    rw [hn_f] at h h'
+    simp only [toPolynomialSimp] at hf
+    let g := f.toPolynomial / gcd f.toPolynomial (Polynomial.derivative f.toPolynomial)
+    have hfg := (EuclideanDomain.div_eq_iff_eq_mul_of_dvd f.toPolynomial (gcd f.toPolynomial
+      (Polynomial.derivative f.toPolynomial)) g (gcd_ne_zero_of_left hf) (gcd_dvd_left ..)).1 rfl
+    have hgf' : Polynomial.map (algebraMap R S) f.toPolynomial = Polynomial.map (algebraMap R S)
+      (gcd f.toPolynomial (Polynomial.derivative f.toPolynomial)) * Polynomial.map
+      (algebraMap R S) g := by
+      rw [← Polynomial.map_mul]
+      exact congrArg _ hfg
+    let n_g := Polynomial.rootMultiplicity x (Polynomial.map (algebraMap R S) g)
+    have hn_g : Polynomial.rootMultiplicity x (Polynomial.map (algebraMap R S) g) =
+      n_g := rfl
+    rw [hn_g]
+    have : n_f = Polynomial.rootMultiplicity x (Polynomial.map (algebraMap R S)
+      (gcd f.toPolynomial (Polynomial.derivative f.toPolynomial))) + n_g := by
+      rw [← hn_f, ← hn_g, hgf']
+      apply Polynomial.rootMultiplicity_mul
+      rw [← hgf']
+      apply Polynomial.map_ne_zero hf
+    apply pos_of_lt_add_right (a := Polynomial.rootMultiplicity x
+      (Polynomial.map (algebraMap R S) (gcd f.toPolynomial (Polynomial.derivative f.toPolynomial))))
+    rw [← this]
+    apply Nat.lt_of_le_sub_one h
+    rw [← h']
+    apply Polynomial.rootMultiplicity_le_rootMultiplicity_of_dvd
+    · intro h''
+      apply Polynomial.eq_C_of_derivative_eq_zero at h''
+      apply congrArg <| Polynomial.rootMultiplicity x at h''
+      rw [Polynomial.rootMultiplicity_C] at h''
+      apply Trans.trans h at h''
+      exact not_lt_of_ge (le_refl 0) h''
+    · rw [Polynomial.derivative_map]
+      apply Polynomial.map_dvd
+      apply gcd_dvd_right
+
+lemma deriv_root_ne_zero_of_squarefree {R S : Type*} [DecidableEq R] [Field R] [PerfectField R]
+  (f : CPoly R) (hf : Squarefree f) [DecidableEq S] [Field S] [Algebra R S] (x : S) :
+  (f.liftTo S).eval x = 0 → (f.deriv.liftTo S).eval x ≠ 0 := by
+  simp only [toPolynomialSimp, toPolynomial_liftTo_eval_eq_eval₂] at hf ⊢
+  intro h
+  apply Polynomial.Separable.eval₂_derivative_ne_zero _
+    (PerfectField.separable_iff_squarefree.2 hf) h
+
 end CPoly
