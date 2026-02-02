@@ -20,7 +20,7 @@ Note: If the interval has negative length so $\max(l_a,l_b)>\min(u_a,u_b)$ there
 
 ## Addition
 For every $n \in \mathbb{N}$ we define $z_n:=((\alpha+\beta)^n \mod p(\alpha)) \mod q(\beta)$ and
-take a non trivial non almost everywhere zero solution $c_n$ of $\sum_{n \in \mathbb{N}} c_n z_n = 0$
+take a non trivial almost everywhere zero solution $c_n$ of $\sum_{n \in \mathbb{N}} c_n z_n = 0$
 
 $(c_n)_{n \in \mathbb{N}}$ is now a polynomial with $a+b$ as root.
 We now refine the bounds and make our polynomial squarefree.
@@ -31,7 +31,7 @@ The bounds change their sign and place.
 
 ## Multiplication
 For every $n \in \mathbb{N}$ we define $z_n:=((\alpha \cdot \beta)^n \mod p(\alpha)) \mod q(\beta)$ and
-take a non trivial non almost everywhere zero solution $c_n$ of $\sum_{n \in \mathbb{N}} c_n z_n = 0$
+take a non trivial almost everywhere zero solution $c_n$ of $\sum_{n \in \mathbb{N}} c_n z_n = 0$
 
 $(c_n)_{n \in \mathbb{N}}$ is now a polynomial with $a \cdot b$ as root.
 We now refine the bounds and make our polynomial squarefree.
