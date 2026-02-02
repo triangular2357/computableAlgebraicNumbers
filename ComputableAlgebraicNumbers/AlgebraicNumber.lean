@@ -4,7 +4,7 @@ import ComputableAlgebraicNumbers.ApproximationType
 
 structure PreRealAlgebraicNumber where
   min_poly : CPoly ℚ
-  irr : Irreducible min_poly
+  squarefree : Squarefree min_poly
   lower : ℚ
   upper : ℚ
   lower_le_upper : lower ≤ upper
@@ -23,7 +23,7 @@ instance : ApproximationType PreRealAlgebraicNumber where
     if h : a.min_poly.eval a.lower * a.min_poly.eval midpoint ≤ 0
     then {
       min_poly := a.min_poly
-      irr := a.irr
+      squarefree := a.squarefree
       lower := a.lower
       upper := midpoint
       lower_le_upper := hbetween.1
@@ -32,7 +32,7 @@ instance : ApproximationType PreRealAlgebraicNumber where
         Set.Icc_subset_Icc (le_refl a.lower) hbetween.2 hx
     } else {
       min_poly := a.min_poly
-      irr := a.irr
+      squarefree := a.squarefree
       lower := midpoint
       upper := a.upper
       lower_le_upper := hbetween.2
