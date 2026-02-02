@@ -2,16 +2,16 @@
 
 This project aims to make the algebraic closure of the rationals, short algebraic numbers or 𝔸, computable.
 This consists of computable equality, addition, additive inverses, multiplication and multiplicative inverses.
-The real and complex part are stored seperately both as an algebraic real number.
-We store an real algebraic number by storing a square free polynomial, a rational lower and upper bound forming a closed interval containing exactly the root we want to store where the polynomial is monotone,
-and the proves about all the previosly mentioned properties.
+The real and complex parts are stored separately both as an algebraic real number.
+We store a real algebraic number by storing a square free polynomial, a rational lower and upper bound forming a closed interval containing exactly the root we want to store where the polynomial is monotone,
+and the proofs about all the previously mentioned properties.
 
-Since mathlib doesn't have computable polynomials, including the needed operations on them and linear systems, most of our work consists of building that.
-
-
+Since Mathlib doesn't have computable polynomials, including the needed operations on them and linear systems, most of our work consists of building that.
 
 
-let $a := (p_a,l_a,u_a)$ and $b := (p_b,l_b,u_b)$ with $p_a(x) = \sum_{n=0}^{deg(p_a)} a_n x^n$ and $p_b(x) = \sum_{n=0}^{deg(p_b)} b_n x^n$ be two real algebraic numbers
+
+
+Let $a := (p_a,l_a,u_a)$ and $b := (p_b,l_b,u_b)$ with $p_a(x) = \sum_{n=0}^{deg(p_a)} a_n x^n$ and $p_b(x) = \sum_{n=0}^{deg(p_b)} b_n x^n$ be two real algebraic numbers.
 
 ## Equality
 We check whether $\gcd(p_a,p_b)$ contains a root in $[\max(l_a,l_b),\min(u_a,u_b)]$
