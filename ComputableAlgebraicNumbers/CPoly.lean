@@ -1644,4 +1644,106 @@ lemma deriv_root_ne_zero_of_squarefree {R S : Type*} [DecidableEq R] [Field R] [
   apply Polynomial.Separable.eval₂_derivative_ne_zero _
     (PerfectField.separable_iff_squarefree.2 hf) h
 
+def lipschitz (f : CPoly ℚ) (lower upper : ℚ) : ℚ :=
+  letI N : ℚ := max |lower| |upper|
+  f.deriv.toPolynomial.sum fun i a ↦ |a| * N ^ i
+
+lemma lipschitz_nonneg (f : CPoly ℚ) (lower upper : ℚ) : lipschitz f lower upper ≥ (0 : ℝ) := by
+  unfold lipschitz Polynomial.sum
+  push_cast
+  apply Finset.sum_nonneg
+  intro i _
+  rw [show (0 : ℝ) = 0 * (max 0 0) ^ i by ring]
+  gcongr <;> apply abs_nonneg
+
+lemma lipschitz_monotone (f : CPoly ℚ) (l₁ u₁ l₂ u₂ : ℚ) (h : Set.uIcc l₁ u₁ ⊆ Set.uIcc l₂ u₂) :
+  lipschitz f l₁ u₁ ≤ lipschitz f l₂ u₂ := by
+  have : max |l₁| |u₁| ≤ max |l₂| |u₂| := by
+    have ⟨hmin, hmax⟩ := Set.uIcc_subset_uIcc_iff_le.1 h
+    unfold abs
+    apply max_le <;> apply max_le
+    · trans max l₁ u₁
+      · apply le_max_left
+      · apply hmax.trans
+        apply max_le
+        · apply le_max_of_le_left
+          apply le_max_left
+        · apply le_max_of_le_right
+          apply le_max_left
+    · trans max (-l₁) (-u₁)
+      · apply le_max_left
+      · grw [max_neg_neg, ← hmin, ← max_neg_neg]
+        apply max_le
+        · apply le_max_of_le_left
+          apply le_max_right
+        · apply le_max_of_le_right
+          apply le_max_right
+    · trans max l₁ u₁
+      · apply le_max_right
+      · apply hmax.trans
+        apply max_le
+        · apply le_max_of_le_left
+          apply le_max_left
+        · apply le_max_of_le_right
+          apply le_max_left
+    · trans max (-l₁) (-u₁)
+      · apply le_max_right
+      · grw [max_neg_neg, ← hmin, ← max_neg_neg]
+        apply max_le
+        · apply le_max_of_le_left
+          apply le_max_right
+        · apply le_max_of_le_right
+          apply le_max_right
+  unfold lipschitz  Polynomial.sum
+  apply Finset.sum_le_sum
+  intro i hi
+  dsimp only
+  gcongr
+
+lemma lipschitz_lipschitz {f : CPoly ℚ} {l u : ℚ} :
+  LipschitzOnWith ⟨lipschitz f l u, lipschitz_nonneg f l u⟩ (f.liftTo ℝ).eval (Set.Icc l u) := by
+  simp_rw [funext (toPolynomial_liftTo_eval_eq_eval₂ (S := ℝ) f), Polynomial.eval₂_eq_eval_map]
+  apply Convex.lipschitzOnWith_of_nnnorm_deriv_le
+  · intros
+    apply Differentiable.differentiableAt
+    apply Polynomial.differentiable
+  · intro x hx
+    apply NNReal.coe_le_coe.1
+    rw [Polynomial.deriv, coe_nnnorm, Real.norm_eq_abs, NNReal.coe_mk]
+    unfold lipschitz
+    rw [toPolynomial_deriv, Polynomial.derivative_map, Polynomial.eval_map, Polynomial.eval₂_eq_sum]
+    unfold Polynomial.sum
+    refine abs_le.2 ⟨?_, ?_⟩
+    · simp only [Rat.cast_sum, Rat.cast_mul, Rat.cast_abs, Rat.cast_pow, Rat.cast_max, eq_ratCast]
+      rw [← neg_one_mul, Finset.mul_sum]
+      apply Finset.sum_le_sum
+      intro i _
+      grw [neg_one_mul, neg_le, neg_le_abs, abs_mul, abs_pow]
+      gcongr
+      rw [Set.mem_Icc] at hx
+      unfold abs
+      apply max_le
+      · apply le_max_of_le_right
+        apply le_max_of_le_left
+        exact hx.2
+      · apply le_max_of_le_left
+        apply le_max_of_le_right
+        exact neg_le_neg hx.1
+    · simp?
+      apply Finset.sum_le_sum
+      intro i _
+      grw [le_abs_self (↑((Polynomial.derivative f.toPolynomial).coeff i) * x ^ i),
+        abs_mul, abs_pow]
+      gcongr
+      rw [Set.mem_Icc] at hx
+      unfold abs
+      apply max_le
+      · apply le_max_of_le_right
+        apply le_max_of_le_left
+        exact hx.2
+      · apply le_max_of_le_left
+        apply le_max_of_le_right
+        exact neg_le_neg hx.1
+  · apply convex_Icc
+
 end CPoly

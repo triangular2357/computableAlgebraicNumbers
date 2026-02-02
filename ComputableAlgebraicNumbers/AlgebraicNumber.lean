@@ -107,6 +107,7 @@ instance (ε : ℚ) (h : ε > 0) :
       simp only [half_lt_self_iff, h]
 
 structure PolyLevelFun' (rootFun : ℝ → ℝ) where
+  cont : Continuous rootFun
   semiMonotone : ∀ x a b, x ∈ Set.uIcc a b → rootFun x ∈ Set.uIcc (rootFun a) (rootFun b)
   polyFun : CPoly ℚ → CPoly ℚ
   neZero : ∀ p, p ≠ 0 → polyFun p ≠ 0
@@ -117,6 +118,7 @@ structure PolyLevelFun (rootFun : ℝ → ℝ) extends PolyLevelFun' (rootFun : 
 
 def squarefreeify {rootFun : ℝ → ℝ} (plf : PolyLevelFun' (rootFun : ℝ → ℝ)) :
   PolyLevelFun (rootFun : ℝ → ℝ) where
+  cont := plf.cont
   semiMonotone := plf.semiMonotone
   polyFun p := plf.polyFun p / gcd (plf.polyFun p) (plf.polyFun p).deriv
   neZero := by
