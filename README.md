@@ -19,8 +19,7 @@ We check whether $\gcd(p_a,p_b)$ contains a root in $[\max(l_a,l_b),\min(u_a,u_b
 Note: If the interval has negative length so $\max(l_a,l_b)>\min(u_a,u_b)$ there is no root in it.
 
 ## Addition
-For every $n \in \mathbb{N}$ we define $z_n:=((\alpha+\beta)^n \mod p_a(\alpha)) \mod p_b(\beta)$ and
-take a non trivial almost everywhere zero solution $c_n$ of $\sum_{n \in \mathbb{N}} c_n z_n = 0$
+Take a non trivial, finite support solution $c_n$ of $\sum_{n \in \mathbb{N}} c_n (\alpha+\beta)^n \equiv 0 \mod (p_a(\alpha),p_b(\beta))$
 
 $(c_n)_{n \in \mathbb{N}}$ is now a polynomial with $a+b$ as root.
 We now refine the bounds and make our polynomial squarefree.
@@ -30,8 +29,7 @@ Take the additive inverse of all odd coefficients $c_n = a_n \cdot (-1)^n$
 The bounds change their sign and place.
 
 ## Multiplication
-For every $n \in \mathbb{N}$ we define $z_n:=((\alpha \cdot \beta)^n \mod p_a(\alpha)) \mod p_b(\beta)$ and
-take a non trivial almost everywhere zero solution $c_n$ of $\sum_{n \in \mathbb{N}} c_n z_n = 0$
+Take a non trivial, finite support solution $c_n$ of $\sum_{n \in \mathbb{N}} c_n (\alpha\cdot\beta)^n \equiv 0 \mod (p_a(\alpha),p_b(\beta))$
 
 $(c_n)_{n \in \mathbb{N}}$ is now a polynomial with $a \cdot b$ as root.
 We now refine the bounds and make our polynomial squarefree.
