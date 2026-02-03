@@ -20,14 +20,6 @@ lemma isExact_le_stable {A : Type*} [ApproximationType A] (p : A → Prop) [hp :
       rw [Function.iterate_succ_apply']
       apply hp.stable _ ih
 
-instance {A : Type*} [ApproximationType A] {p q : A → Prop} [hp : isExact p] [hq : isExact q] :
-  isExact (fun a ↦ p a ∧ q a) where
-  reachable := fun a ↦ Exists.intro (max (hp.reachable a).choose (hq.reachable a).choose)
-    ⟨isExact_le_stable p (le_max_left ..) a (Exists.choose_spec (hp.reachable a)),
-    isExact_le_stable q (le_max_right ..) a (Exists.choose_spec (hq.reachable a))⟩
-  stable := fun a h ↦ ⟨hp.stable a h.left, hq.stable a h.right⟩
-  decidable := fun a ↦ let := hp.decidable a; let := hq.decidable a; inferInstance
-
 instance {A : Type*} [ApproximationType A] (p : A → Prop) [hp : isExact p] (a : A) :
   Decidable (p a) := hp.decidable a
 
@@ -59,6 +51,14 @@ lemma approximate_spec {A : Type*} [ApproximationType A] (p : A → Prop)
   termination_by Nat.find (hp.reachable a)
   decreasing_by apply termination_lemma; assumption
 
+def isExact_and {A : Type*} [ApproximationType A] {p q : A → Prop}
+  (hp : isExact p) (hq : isExact q) : isExact (fun a ↦ p a ∧ q a) where
+  reachable := fun a ↦ Exists.intro (max (hp.reachable a).choose (hq.reachable a).choose)
+    ⟨isExact_le_stable p (le_max_left ..) a (Exists.choose_spec (hp.reachable a)),
+    isExact_le_stable q (le_max_right ..) a (Exists.choose_spec (hq.reachable a))⟩
+  stable := fun a h ↦ ⟨hp.stable a h.left, hq.stable a h.right⟩
+  decidable := fun a ↦ let := hp.decidable a; let := hq.decidable a; inferInstance
+
 instance {A B : Type*} [ApproximationType A] [ApproximationType B] : ApproximationType (A × B) where
   improve := fun (a, b) ↦ (improve a, improve b)
 
@@ -70,18 +70,22 @@ lemma iterate_improve_prod {A B : Type*} [ApproximationType A] [ApproximationTyp
     simp only [Function.iterate_succ_apply']
     exact congr_arg improve ih
 
-instance {A B : Type*} [ApproximationType A] [ApproximationType B] (p : A → Prop)
-  [hp : isExact p] : isExact (fun ((a, _) : A × B) ↦ p a) where
+def isExact_prod_left {A B : Type*} [ApproximationType A] [ApproximationType B] (p : A → Prop)
+  (hp : isExact p) : isExact (fun ((a, _) : A × B) ↦ p a) where
     reachable := fun (a, b) ↦ ⟨(hp.reachable a).choose,
       iterate_improve_prod a b _ ▸ (hp.reachable a).choose_spec⟩
     stable := fun (a, _) ↦ hp.stable a
     decidable := fun (a, _) ↦ hp.decidable a
 
-instance {A B : Type*} [ApproximationType A] [ApproximationType B] (p : B → Prop)
-  [hp : isExact p] : isExact (fun ((_, b) : A × B) ↦ p b) where
+def isExact_prod_right {A B : Type*} [ApproximationType A] [ApproximationType B] (p : B → Prop)
+  (hp : isExact p) : isExact (fun ((_, b) : A × B) ↦ p b) where
     reachable := fun (a, b) ↦ ⟨(hp.reachable b).choose,
       iterate_improve_prod a b _ ▸ (hp.reachable b).choose_spec⟩
     stable := fun (_, b) ↦ hp.stable b
     decidable := fun (_, b) ↦ hp.decidable b
+
+def isExact_prod_and {A B : Type*} [ApproximationType A] [ApproximationType B] (p : A → Prop)
+  (q : B → Prop) (hp : isExact p) (hq : isExact q) : isExact (fun (a, b) ↦ p a ∧ q b) :=
+  isExact_and (isExact_prod_left p hp) (isExact_prod_right q hq)
 
 end ApproximationType
