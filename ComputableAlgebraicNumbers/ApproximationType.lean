@@ -51,6 +51,27 @@ lemma approximate_spec {A : Type*} [ApproximationType A] (p : A → Prop)
   termination_by Nat.find (hp.reachable a)
   decreasing_by apply termination_lemma; assumption
 
+def approximate_rec {A : Type*} [ApproximationType A] {p : A → Prop} [hp : isExact p] {a0 : A}
+  {motive : A → Sort*} (ha0 : motive a0) (h_improve : ∀ {a}, motive a → motive (improve a)) :
+  motive (approximate p a0) := by
+  unfold approximate
+  rw [apply_ite motive]
+  split_ifs
+  · assumption
+  · apply approximate_rec (h_improve ha0) h_improve
+  termination_by Nat.find (hp.reachable a0)
+  decreasing_by apply termination_lemma; assumption
+
+def approximate_eq_iterate_improve {A : Type*} [ApproximationType A] {p : A → Prop}
+  [hp : isExact p] (a : A) : ∃ n, approximate p a = improve^[n] a := by
+  apply approximate_rec (p := p) (motive := fun x ↦ ∃ n, x = improve^[n] a)
+  · use 0
+    rfl
+  · intro b ⟨n, h⟩
+    use n.succ
+    rw [h, Function.iterate_succ']
+    rfl
+
 def isExact_and {A : Type*} [ApproximationType A] {p q : A → Prop}
   (hp : isExact p) (hq : isExact q) : isExact (fun a ↦ p a ∧ q a) where
   reachable := fun a ↦ Exists.intro (max (hp.reachable a).choose (hq.reachable a).choose)

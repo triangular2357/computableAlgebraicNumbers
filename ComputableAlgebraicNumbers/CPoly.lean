@@ -753,6 +753,34 @@ instance {R : Type*} [DecidableEq R] [CommRing R] : AddCommGroup (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommRing R] : Ring (CPoly R) where
 instance {R : Type*} [DecidableEq R] [CommRing R] : CommRing (CPoly R) where
 
+instance {R : Type*} [DecidableEq R] [CommSemiring R] : Algebra R (CPoly R) where
+  smul := smul
+  algebraMap := {
+    toFun := const
+    map_one' := by
+      simp only [toPolynomialSimp]
+      apply Polynomial.C_1
+    map_mul' := by
+      intro x y
+      simp only [toPolynomialSimp]
+      apply Polynomial.C_mul
+    map_zero' := by
+      simp only [toPolynomialSimp]
+      apply Polynomial.C_0
+    map_add' := by
+      intro x y
+      simp only [toPolynomialSimp]
+      apply Polynomial.C_add
+  }
+  commutes' := by
+    intro r x
+    simp only [RingHom.coe_mk, MonoidHom.coe_mk, OneHom.coe_mk, mul_comm]
+  smul_def' := by
+    intro r x
+    simp only [RingHom.coe_mk, MonoidHom.coe_mk, OneHom.coe_mk, toPolynomial_eq, toPolynomial_smul,
+      toPolynomial_mul, toPolynomial_const]
+    apply Polynomial.smul_eq_C_mul
+
 noncomputable def toPolynomial_ringEquiv {R : Type*} [CommSemiring R] [DecidableEq R] :
   CPoly R ≃+* Polynomial R where
   toFun := toPolynomial
@@ -1646,15 +1674,19 @@ lemma deriv_root_ne_zero_of_squarefree {R S : Type*} [DecidableEq R] [Field R] [
 
 def lipschitz (f : CPoly ℚ) (lower upper : ℚ) : ℚ :=
   letI N : ℚ := max |lower| |upper|
-  f.deriv.toPolynomial.sum fun i a ↦ |a| * N ^ i
+  1 + f.deriv.toPolynomial.sum fun i a ↦ |a| * N ^ i
 
-lemma lipschitz_nonneg (f : CPoly ℚ) (lower upper : ℚ) : lipschitz f lower upper ≥ (0 : ℝ) := by
+lemma lipschitz_pos (f : CPoly ℚ) (lower upper : ℚ) : lipschitz f lower upper > (0 : ℝ) := by
   unfold lipschitz Polynomial.sum
   push_cast
+  apply add_pos_of_pos_of_nonneg zero_lt_one
   apply Finset.sum_nonneg
   intro i _
   rw [show (0 : ℝ) = 0 * (max 0 0) ^ i by ring]
   gcongr <;> apply abs_nonneg
+
+lemma lipschitz_nonneg (f : CPoly ℚ) (lower upper : ℚ) : lipschitz f lower upper ≥ (0 : ℝ) :=
+  le_of_lt <| lipschitz_pos f lower upper
 
 lemma lipschitz_monotone (f : CPoly ℚ) (l₁ u₁ l₂ u₂ : ℚ) (h : Set.uIcc l₁ u₁ ⊆ Set.uIcc l₂ u₂) :
   lipschitz f l₁ u₁ ≤ lipschitz f l₂ u₂ := by
@@ -1694,7 +1726,8 @@ lemma lipschitz_monotone (f : CPoly ℚ) (l₁ u₁ l₂ u₂ : ℚ) (h : Set.uI
           apply le_max_right
         · apply le_max_of_le_right
           apply le_max_right
-  unfold lipschitz  Polynomial.sum
+  unfold lipschitz Polynomial.sum
+  apply (add_le_add_iff_left 1).2
   apply Finset.sum_le_sum
   intro i hi
   dsimp only
@@ -1711,6 +1744,9 @@ lemma lipschitz_lipschitz {f : CPoly ℚ} {l u : ℚ} :
     apply NNReal.coe_le_coe.1
     rw [Polynomial.deriv, coe_nnnorm, Real.norm_eq_abs, NNReal.coe_mk]
     unfold lipschitz
+    push_cast
+    rw [AddCommMagma.add_comm (1 : ℝ)]
+    refine le_add_of_le_of_nonneg ?_ zero_le_one
     rw [toPolynomial_deriv, Polynomial.derivative_map, Polynomial.eval_map, Polynomial.eval₂_eq_sum]
     unfold Polynomial.sum
     refine abs_le.2 ⟨?_, ?_⟩
@@ -1729,7 +1765,7 @@ lemma lipschitz_lipschitz {f : CPoly ℚ} {l u : ℚ} :
       · apply le_max_of_le_left
         apply le_max_of_le_right
         exact neg_le_neg hx.1
-    · simp?
+    · simp only [eq_ratCast, Rat.cast_sum, Rat.cast_mul, Rat.cast_abs, Rat.cast_pow, Rat.cast_max]
       apply Finset.sum_le_sum
       intro i _
       grw [le_abs_self (↑((Polynomial.derivative f.toPolynomial).coeff i) * x ^ i),
