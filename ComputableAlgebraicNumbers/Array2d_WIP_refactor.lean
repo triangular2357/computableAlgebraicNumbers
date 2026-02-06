@@ -3,130 +3,118 @@ import Mathlib.Algebra.Ring.Defs
 import Mathlib.Tactic
 
 
---structure Array2d' (α : Type*) (row_count : ℕ) (column_count : ℕ) where
---  data : Array α -- make sure that there is only one reference to this at a time
---                 -- then the compiler optimizes it to modify it in place
---  condition : data.size = row_count * column_count
-
-structure Array2d (α : Type*) where
+structure Array2d (α : Type*) (row_count : ℕ) (column_count : ℕ) where
   data : Array α -- make sure that there is only one reference to this at a time
-  row_count : ℕ  -- then the compiler optimizes it to modify it in place
-  column_count : ℕ
+                 -- then the compiler optimizes it to modify it in place
   condition : data.size = row_count * column_count
 
 #print Vector
 namespace Array2d
 
-def empty (α : Type*) : Array2d α:=⟨Array.empty,0,0,by rfl ⟩
+def empty (α : Type*) : Array2d α 0 0:=⟨Array.empty,by rfl ⟩
 
-abbrev NeEmpty {α : Type*} (M : Array2d α) : Prop := ¬M.data.size = 0
+abbrev NeEmpty {α : Type*} (M : Array2d α r c) : Prop := ¬M.data.size = 0
 
-instance {α : Type*} (M : Array2d α) : Decidable M.NeEmpty := by
+instance {α : Type*} (M : Array2d α r c) : Decidable M.NeEmpty := by
   unfold NeEmpty
   infer_instance
 
-lemma NeEmpty_imp_NeZero_row_count {α : Type*} (M : Array2d α) :
-  NeEmpty M → NeZero M.row_count := by
+lemma NeEmpty_imp_NeZero_row_count {α : Type*} (M : Array2d α r c) :
+  NeEmpty M → NeZero r := by
   unfold NeEmpty
   rw [condition, neZero_iff, Nat.mul_eq_zero, not_or, ne_eq]
   intro ⟨h,h'⟩
   assumption
 
-lemma NeEmpty_NeZero_row_count {α : Type*} (M : Array2d α) (h : NeEmpty M)
-  :NeZero M.row_count := by
+lemma NeEmpty_NeZero_row_count {α : Type*} (M : Array2d α r c) (h : NeEmpty M)
+  :NeZero r := by
   apply NeEmpty_imp_NeZero_row_count;assumption
 
-lemma NeEmpty_imp_NeZero_column_count {α : Type*} (M : Array2d α) :
-  NeEmpty M → NeZero M.column_count := by
+lemma NeEmpty_imp_NeZero_column_count {α : Type*} (M : Array2d α r c) :
+  NeEmpty M → NeZero c := by
   unfold NeEmpty
   rw [condition, neZero_iff, Nat.mul_eq_zero, not_or, ne_eq]
   intro ⟨h,h'⟩
   assumption
 
-lemma NeEmpty_NeZero_column_count {α : Type*} (M : Array2d α) (h : NeEmpty M)
-  :NeZero M.column_count := by
+lemma NeEmpty_NeZero_column_count {α : Type*} (M : Array2d α r c) (h : NeEmpty M)
+  :NeZero c := by
   apply NeEmpty_imp_NeZero_column_count;assumption
 
-lemma NeZero_row_column_count_imp_NeEmpty {α : Type*} (M : Array2d α) :
-  NeZero M.row_count → NeZero M.column_count → NeEmpty M := by
+lemma NeZero_row_column_count_imp_NeEmpty {α : Type*} (M : Array2d α r c) :
+  NeZero r → NeZero c → NeEmpty M := by
   unfold NeEmpty
   rw [condition, neZero_iff, neZero_iff, Nat.mul_eq_zero, not_or, ne_eq, ne_eq]
   intro h h'
   constructor <;> assumption
 
-def _at {α : Type*} (M : Array2d α) (row : ℕ) (column : ℕ)
-  (h : row < M.row_count) (h' : column < M.column_count) : α :=
-  have : M.data.size > row*M.column_count+column := by
+def _at {α : Type*} (M : Array2d α r c) (row : ℕ) (column : ℕ)
+  (h : row < r) (h' : column < c) : α :=
+  have : M.data.size > row*c+column := by
     rw [M.condition]
     simp only [gt_iff_lt]
     grw [← Order.add_one_le_iff] at h h' ⊢
-    rw [_root_.add_assoc (row * M.column_count) column 1]
+    rw [_root_.add_assoc (row * c) column 1]
     grw [h']
-    rw [← Nat.add_one_mul row M.column_count]
+    rw [← Nat.add_one_mul row c]
     grw [h]
-  M.data[row*M.column_count+column]
+  M.data[row*c+column]
 
-def atD {α : Type*} (M : Array2d α) (row : ℕ) (column : ℕ) (default : α) : α :=
-  if h : row < M.row_count then
-  if h' : column < M.column_count then
+def atD {α : Type*} (M : Array2d α r c) (row : ℕ) (column : ℕ) (default : α) : α :=
+  if h : row < r then
+  if h' : column < c then
   M._at row column h h'
   else default else default
 
-def get_row {α : Type*} (M : Array2d α) (row : ℕ) : Subarray α :=
-  M.data.toSubarray (row*M.column_count) ((row+1)*M.column_count)
+def get_row {α : Type*} (M : Array2d α r c) (row : ℕ) : Subarray α :=
+  M.data.toSubarray (row*c) ((row+1)*c)
 
-def get_column {α : Type*} [DecidableEq α] (M : Array2d α) (column : ℕ)
- (h : NeZero M.column_count) : Array α := -- impl like getEvenElems in Mathlib
-  (·.2) <| M.data.foldl (init := ((0:Fin M.column_count), Array.empty)) fun (c, acc) a =>
+def get_column {α : Type*} [DecidableEq α] (M : Array2d α r c) (column : ℕ)
+ (h : NeZero c) : Array α := -- impl like getEvenElems in Mathlib
+  (·.2) <| M.data.foldl (init := ((0:Fin c), Array.empty)) fun (c, acc) a =>
     if c=column then
       (c+1, acc.push a)
     else
       (c+1, acc)
 
-def map {α : Type*} [DecidableEq α] (M : Array2d α) (f : α → α) : Array2d α:=
+def map {α : Type*} [DecidableEq α] (M : Array2d α r c) (f : α → α) : Array2d α r c:=
   ⟨
     M.data.map f,
-    M.row_count,
-    M.column_count,
     by
       rw [← M.condition]
       exact Array.size_map
   ⟩
 
-def mapIdx {α : Type*} [DecidableEq α] (M : Array2d α) (f : ℕ → α → α) : Array2d α:=
+def mapIdx {α : Type*} [DecidableEq α] (M : Array2d α r c) (f : ℕ → α → α) : Array2d α r c:=
   ⟨
     M.data.mapIdx f,
-    M.row_count,
-    M.column_count,
     by
       rw [← M.condition]
       exact Array.size_mapIdx
   ⟩
 
-def mapIdxRC {α : Type*} [DecidableEq α] (M : Array2d α) (f : ℕ → ℕ → α → α) : Array2d α:=
+def mapIdxRC {α : Type*} [DecidableEq α] (M : Array2d α r c) (f : ℕ → ℕ → α → α) : Array2d α r c:=
   ⟨
-    M.data.mapIdx (fun i a ↦ (f (i / M.column_count) (i % M.column_count) a)),
-    M.row_count,
-    M.column_count,
+    M.data.mapIdx (fun i a ↦ (f (i / c) (i % c) a)),
     by
       rw [← M.condition]
       exact Array.size_mapIdx
   ⟩
 
 @[simp]
-lemma mapIdxRCKeepsSize {α : Type*} [DecidableEq α] (M : Array2d α) (f : ℕ → ℕ → α → α)
+lemma mapIdxRCKeepsSize {α : Type*} [DecidableEq α] (M : Array2d α r c) (f : ℕ → ℕ → α → α)
 :M.data.size = (M.mapIdxRC f).data.size:=by
   unfold mapIdxRC
   simp only [Array.size_mapIdx]
 
 @[simp]
-lemma mapIdxRCKeepsNeEmpty {α : Type*} [DecidableEq α] (M : Array2d α) (f : ℕ → ℕ → α → α)
+lemma mapIdxRCKeepsNeEmpty {α : Type*} [DecidableEq α] (M : Array2d α r c) (f : ℕ → ℕ → α → α)
 (h : M.NeEmpty) :(M.mapIdxRC f).NeEmpty:=by
   unfold NeEmpty at ⊢ h
   grind only [mapIdxRCKeepsSize]
 
-private def _ℚrevNormMatrix' (M : Array2d ℚ) (column_index : Fin M.column_count) : Array2d ℚ :=
-  have h: NeZero M.column_count := by
+private def _ℚrevNormMatrix' (M : Array2d ℚ r c) (column_index : Fin c) : Array2d ℚ r c :=
+  have h: NeZero c := by
     by_contra h
     rw [not_neZero] at h
     rw [h] at column_index
@@ -139,63 +127,48 @@ private def _ℚrevNormMatrix' (M : Array2d ℚ) (column_index : Fin M.column_co
 
 
 @[simp]
-lemma _ℚrevNormMatrix'KeepsSize (M : Array2d ℚ) (column_index : Fin M.column_count)
+lemma _ℚrevNormMatrix'KeepsSize (M : Array2d ℚ r c) (column_index : Fin c)
   :(M._ℚrevNormMatrix' column_index).data.size = M.data.size :=by
   unfold _ℚrevNormMatrix'
   unfold mapIdxRC
   simp only [Array.getElem?_map, Array.size_mapIdx]
 
-@[simp]
-lemma _ℚrevNormMatrix'KeepsRowCount (M : Array2d ℚ) (column_index : Fin M.column_count)
-  :M.row_count = (M._ℚrevNormMatrix' column_index).row_count:= by
-  unfold _ℚrevNormMatrix'
-  unfold mapIdxRC
-  simp only
 
-
-private def _ℚrevNormMatrix (M : Array2d ℚ) (h : M.NeEmpty) : (Array2d ℚ) × ℕ:=
-  have : NeZero M.row_count := NeEmpty_NeZero_row_count M h
-  have : NeZero M.column_count := NeEmpty_NeZero_column_count M h
+private def _ℚrevNormMatrix (M : Array2d ℚ r c) (h : M.NeEmpty) : (Array2d ℚ r c) × ℕ:=
+  have : NeZero r := NeEmpty_NeZero_row_count M h
+  have : NeZero c := NeEmpty_NeZero_column_count M h
   let column := (·.2) <|
-  M.data.foldl (init := (((0:Fin M.column_count),(0:Fin M.row_count)),
-  M.column_count)) fun ((c, r), smallestC) q =>
+  M.data.foldl (init := (((0:Fin c),(0:Fin r)),
+  c)) fun ((c, r), smallestC) q =>
     (if c+1=0 then ((c+1,r+1), ·) else ((c+1,r),·)) <|
       if q=0 then smallestC else min smallestC c
   --if (column ≥ M.column_count) then (M, column) else
-  (M._ℚrevNormMatrix' (Fin.ofNat M.column_count column), column)
+  (M._ℚrevNormMatrix' (Fin.ofNat c column), column)
   -- if everything is zero ℚrevNormMatrix' doesn't do anything
   -- so we probably don't need the if line above
 
 @[simp]
-lemma _ℚrevNormMatrixKeepsSize (M : Array2d ℚ) (h : M.NeEmpty)
+lemma _ℚrevNormMatrixKeepsSize (M : Array2d ℚ r c) (h : M.NeEmpty)
   :(M._ℚrevNormMatrix h).1.data.size = M.data.size:=by
   unfold _ℚrevNormMatrix
   apply _ℚrevNormMatrix'KeepsSize
 
 @[simp]
-lemma _ℚrevNormMatrixKeepsRowCount (M : Array2d ℚ) (h : M.NeEmpty)
-  :M.row_count = (M._ℚrevNormMatrix h).1.row_count:=by
-  unfold _ℚrevNormMatrix
-  simp
-  apply _ℚrevNormMatrix'KeepsRowCount
-
-@[simp]
-lemma _ℚrevNormMatrixKeepsNeEmpty (M : Array2d ℚ) (h : M.NeEmpty)
+lemma _ℚrevNormMatrixKeepsNeEmpty (M : Array2d ℚ r c) (h : M.NeEmpty)
   :(M._ℚrevNormMatrix h).1.NeEmpty:=by
   unfold NeEmpty at ⊢ h
   have : M.data.size=(M._ℚrevNormMatrix h).1.data.size := by symm;apply _ℚrevNormMatrixKeepsSize
   grind only
 
-private def _matrixToReducedRowEchelonForm (M : Array2d ℚ) : Array2d ℚ :=
+private def _matrixToReducedRowEchelonForm (M : Array2d ℚ r c) : Array2d ℚ r c :=
   if h:M.NeEmpty then
 
   let M'c := M._ℚrevNormMatrix h
   let M' := M'c.1
   let c := M'c.2
-  have hc: NeZero M'.column_count := by
-    unfold M' M'c
-    apply NeEmpty_imp_NeZero_column_count
-    apply _ℚrevNormMatrixKeepsNeEmpty
+  have hc: NeZero c := by
+    sorry
+    --simp []
 
   let relevant_column' := M'.get_column c hc -- returns empty on c=M.column_count
   let first_non_zero := (relevant_column'.toList.findIdx? (fun l ↦ ¬( l= 0))).getD 0
@@ -333,9 +306,9 @@ def M6 := (Array2d.mk #[3,0,1,2,(Rat.mk' 1 1),4] 2 3 (by decide))
 
 #eval! find_eliminator (#v[#v[3,2],#v[0,1],#v[1,4]])
 
-#eval! M5._matrixToReducedRowEchelonForm |> data
+#eval M5._matrixToReducedRowEchelonForm |> data
 def M5' := (Array2d.mk #[1,1,1,1,1,(Rat.mk' 2 1)] 2 3 (by decide))
-#eval! M5._matrixToReducedRowEchelonForm |> data
+#eval M5._matrixToReducedRowEchelonForm |> data
 
 #eval (M._ℚrevNormMatrix (by decide)).1 |> data
 #eval (M._ℚrevNormMatrix (by decide)).2
