@@ -1041,7 +1041,6 @@ instance : DecidableEq RealAlgebraicNumber := by
     infer_instance
   · infer_instance
 
-
 unsafe instance : Repr RealAlgebraicNumber where
    reprPrec a := fun n ↦
     let unquoted := Quot.unquot a
@@ -1050,9 +1049,9 @@ unsafe instance : Repr RealAlgebraicNumber where
 
 #eval! (5:RealAlgebraicNumber)
 
-def ic (q : ℤ) : RealAlgebraicNumber := q
+-- **Tests**
 
-#check Rat.mk'
+def ic (q : ℤ) : RealAlgebraicNumber := q
 
 def sqrt (q : ℚ) (h : (q > 0) := by decide) : RealAlgebraicNumber := Quotient.mk equiv {
   min_poly := CPoly.X ^ 2 - CPoly.const q
