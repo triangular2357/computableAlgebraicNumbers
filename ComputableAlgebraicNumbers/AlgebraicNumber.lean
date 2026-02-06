@@ -588,7 +588,6 @@ def lower_mul_upper_subset_of_root_of_deriv_ne_zero (f : CPoly ℚ) (a b a' b' :
 def isSufficientlyApproximated {rootFun : ℝ → ℝ}
   (plf : PolyLevelFun rootFun) (a : PreRealAlgebraicNumber) : Prop :=
   letI f := plf.polyFun a.min_poly
-  f.eval (plf.rootFun' a.lower) * f.eval (plf.rootFun' a.upper) ≤ 0 ∧
   isNonzeroWitness f.deriv (min (plf.rootFun' a.lower) (plf.rootFun' a.upper))
     (max (plf.rootFun' a.lower) (plf.rootFun' a.upper))
 
@@ -616,29 +615,12 @@ instance {rootFun : ℝ → ℝ} (plf : PolyLevelFun rootFun) :
   isExact (isSufficientlyApproximated plf) where
   reachable := sorry
   stable a := by
-    intro ⟨h1, h2⟩
+    intro h
     unfold isSufficientlyApproximated
-    constructor
-    · rw [improve_min_poly]
-      apply lower_mul_upper_subset_of_root_of_deriv_ne_zero _
-        (plf.rootFun' a.lower) (plf.rootFun' a.upper)
-      · apply plf.uIcc_subset
-      · simp_rw [plf.rootFun_eq_rootFun']
-        obtain ⟨x, hx1, hx2⟩ := (improve a).has_root
-        apply Set.Icc_subset_uIcc at hx1
-        apply plf.semiMonotone at hx1
-        rw [improve_min_poly] at hx2
-        have := plf.preservesRoots x a.min_poly hx2
-        use rootFun x
-      · have := neZero_of_isNonzeroWitness _ _ _ min_le_max h2
-        intro x hx
-        push_cast at this
-        rw [Set.Icc_min_max] at this
-        exact this x hx
-    · rw [improve_min_poly]
-      refine isNonzeroWitness_monotone ?_ h2
-      simp_rw [Set.Icc_min_max]
-      apply plf.uIcc_subset
+    rw [improve_min_poly]
+    refine isNonzeroWitness_monotone ?_ h
+    simp_rw [Set.Icc_min_max]
+    apply plf.uIcc_subset
 
 def PolyLevelFun.apply' {rootFun : ℝ → ℝ} (plf : PolyLevelFun rootFun)
   (a : PreRealAlgebraicNumber) (h : isSufficientlyApproximated plf a)
@@ -649,11 +631,20 @@ def PolyLevelFun.apply' {rootFun : ℝ → ℝ} (plf : PolyLevelFun rootFun)
     upper := max (plf.rootFun' a.lower) (plf.rootFun' a.upper)
     lower_le_upper := min_le_max
     ivt_condition := by
-      have := h.1
-      by_cases h : plf.rootFun' a.lower ≤ plf.rootFun' a.upper
-      · rwa [min_eq_left h, max_eq_right h]
-      · rwa [min_eq_right_of_lt (not_le.1 h), max_eq_left_of_lt (not_le.1 h), mul_comm]
-    deriv_nzero := neZero_of_isNonzeroWitness _ _ _ min_le_max h.2
+      have := (neZero_of_isNonzeroWitness _ _ _ min_le_max h)
+      apply (lower_mul_upper_le_zero_iff_unique_root_of_deriv_non_zero (plf.polyFun a.min_poly)
+        (min (plf.rootFun' a.lower) (plf.rootFun' a.upper)) (max (plf.rootFun' a.lower)
+        (plf.rootFun' a.upper)) min_le_max this).2
+      apply uniqueRoot_of_root_of_deriv_ne_zero _ _ _ this
+      refine ⟨rootFun a.toReal, ?_, ?_⟩
+      · rify
+        rw [Set.Icc_min_max, plf.rootFun_eq_rootFun', plf.rootFun_eq_rootFun']
+        apply plf.semiMonotone
+        rw [Set.uIcc_of_le <| Rat.cast_le.2 a.lower_le_upper]
+        apply a.toReal_mem_Icc
+      · apply plf.preservesRoots
+        apply a.toReal_isRoot
+    deriv_nzero := neZero_of_isNonzeroWitness _ _ _ min_le_max h
 
 def PolyLevelFun.apply {rootFun : ℝ → ℝ} (plf : PolyLevelFun rootFun)
   (a : PreRealAlgebraicNumber) : PreRealAlgebraicNumber :=
@@ -722,7 +713,6 @@ def isSufficientlyApproximated₂ {rootFun : ℝ → ℝ → ℝ}
     (min (plf.rootFun' a.upper b.lower) (plf.rootFun' a.upper b.upper)))
   letI upper := (max (max (plf.rootFun' a.lower b.lower) (plf.rootFun' a.lower b.upper))
     (max (plf.rootFun' a.upper b.lower) (plf.rootFun' a.upper b.upper)))
-  f.eval lower * f.eval upper ≤ 0 ∧
   isNonzeroWitness f.deriv lower upper
 
 instance {rootFun : ℝ → ℝ → ℝ} (plf : PolyLevelFun₂ rootFun)
@@ -747,9 +737,31 @@ def PolyLevelFun₂.apply' {rootFun : ℝ → ℝ → ℝ} (plf : PolyLevelFun�
     (max (plf.rootFun' a.upper b.lower) (plf.rootFun' a.upper b.upper)))
     lower_le_upper := by
       simp only [le_sup_iff, inf_le_iff, le_refl, true_or, or_true, or_self]
-    ivt_condition := sorry
+    ivt_condition := by
+      have := neZero_of_isNonzeroWitness _ _ _
+        (by simp only [le_sup_iff, inf_le_iff, le_refl, true_or, or_true, or_self]) h
+      apply (lower_mul_upper_le_zero_iff_unique_root_of_deriv_non_zero
+        (plf.polyFun a.min_poly b.min_poly) (min (min (plf.rootFun' a.lower b.lower)
+        (plf.rootFun' a.lower b.upper)) (min (plf.rootFun' a.upper b.lower)
+        (plf.rootFun' a.upper b.upper))) (max (max (plf.rootFun' a.lower b.lower)
+        (plf.rootFun' a.lower b.upper)) (max (plf.rootFun' a.upper b.lower)
+        (plf.rootFun' a.upper b.upper)))
+        (by simp only [le_sup_iff, inf_le_iff, le_refl, true_or, or_true, or_self]) this).2
+      apply uniqueRoot_of_root_of_deriv_ne_zero _ _ _ this
+      refine ⟨rootFun a.toReal b.toReal, ?_, ?_⟩
+      · rify
+        simp_rw [plf.rootFun_eq_rootFun']
+        apply plf.semiMonotone
+        · rw [Set.uIcc_of_le <| Rat.cast_le.2 a.lower_le_upper]
+          apply a.toReal_mem_Icc
+        · rw [Set.uIcc_of_le <| Rat.cast_le.2 b.lower_le_upper]
+          apply b.toReal_mem_Icc
+      · dsimp only
+        apply plf.preservesRoots
+        · apply a.toReal_isRoot
+        · apply b.toReal_isRoot
     deriv_nzero := neZero_of_isNonzeroWitness _ _ _
-      (by simp only [le_sup_iff, inf_le_iff, le_refl, true_or, or_true, or_self]) h.2
+      (by simp only [le_sup_iff, inf_le_iff, le_refl, true_or, or_true, or_self]) h
 
 def PolyLevelFun₂.apply {rootFun : ℝ → ℝ → ℝ} (plf : PolyLevelFun₂ rootFun)
   (a b : PreRealAlgebraicNumber) : PreRealAlgebraicNumber :=
