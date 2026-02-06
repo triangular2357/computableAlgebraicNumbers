@@ -99,11 +99,6 @@ end Vec
 def find_eliminator {n : ℕ} (v : Vector (Vector ℚ n) (n + 1)) : Vector ℚ (n + 1) :=
   ((Vec.ofVector v).map Vec.ofVector).find_eliminator'.toVector
 
-#eval
-  find_eliminator #v[#v[0, 0, 3], #v[0, 2, 0], #v[-1, 0, 0],
-    #v[Rat.mk' 1 2, Rat.mk' 1 2, Rat.mk' 1 2]]
-  |> Vector.toArray
-
 def reduce_mod_Monic (f : CPoly (CPoly ℚ)) (p q : CPoly ℚ) (hp : p.Monic) (hq : q.Monic) :
   CPoly (CPoly ℚ) :=
   (f.modByMonic (p.liftTo (CPoly ℚ)) (CPoly.Monic_liftTo hp)).map'
