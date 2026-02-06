@@ -18,7 +18,7 @@ We can check whether $\gcd(p_a,p_b)$ contains a root in $[\max(l_a,l_b),\min(u_a
 
 Note: If the interval has negative length so $\max(l_a,l_b)>\min(u_a,u_b)$ there is no root in it.
 
-In pratise, we compare the difference to zero which easier albiet less efficient.
+In pratise, we compare the difference to zero which is easier albiet less efficient.
 
 ### Addition
 Take a non trivial, finite support solution $c_n$ of $\sum_{n \in \mathbb{N}} c_n (\alpha+\beta)^n \equiv 0 \mod (p_a(\alpha),p_b(\beta))$
