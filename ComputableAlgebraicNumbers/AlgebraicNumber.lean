@@ -1,6 +1,7 @@
 import Mathlib
 import ComputableAlgebraicNumbers.CPoly
 import ComputableAlgebraicNumbers.ApproximationType
+import ComputableAlgebraicNumbers.PolyOperations
 
 structure PreRealAlgebraicNumber where
   min_poly : CPoly ℚ
@@ -809,10 +810,13 @@ def zero_pln : PolyLevelNum 0 where
 
 def add_plf : PolyLevelFun₂ (· + ·) := squarefreeify₂ {
   cont := by continuity
-  semiMonotone := sorry
+  semiMonotone := by
+    intro x a b ⟨xa, xb⟩ y c d ⟨yc, yd⟩
+    simp only [inf_le_iff, le_sup_iff, Set.mem_Icc] at xa xb yc yd ⊢
+    grind
   rootFun' := (· + ·)
   rootFun_eq_rootFun' := Rat.cast_add
-  polyFun := sorry
+  polyFun := poly_add
   neZero := sorry
   preservesRoots := sorry
 }
@@ -849,10 +853,26 @@ def one_pln : PolyLevelNum 1 where
 
 def mul_plf : PolyLevelFun₂ (· * ·) := squarefreeify₂ {
   cont := by continuity
-  semiMonotone := sorry
+  semiMonotone := by
+    intro x a b hx y c d hy
+    have h1 := (subset_of_eq <| Set.image_const_mul_uIcc x c d) ⟨y, hy, rfl⟩
+    have h2 := (subset_of_eq <| Set.image_const_mul_uIcc c a b) ⟨x, hx, rfl⟩
+    have h3 := (subset_of_eq <| Set.image_const_mul_uIcc d a b) ⟨x, hx, rfl⟩
+    dsimp at h1 h2 h3
+    rw [← mul_comm x] at h2 h3
+    refine Set.mem_of_subset_of_mem ?_ h1
+    apply Set.uIcc_subset_Icc <;> constructor
+    · simp only [← Set.Icc_min_max, Set.mem_Icc, inf_le_iff, le_sup_iff] at h2 ⊢
+      grind
+    · simp only [← Set.Icc_min_max, Set.mem_Icc, inf_le_iff, le_sup_iff] at h2 ⊢
+      grind
+    · simp only [← Set.Icc_min_max, Set.mem_Icc, inf_le_iff, le_sup_iff] at h3 ⊢
+      grind
+    · simp only [← Set.Icc_min_max, Set.mem_Icc, inf_le_iff, le_sup_iff] at h3 ⊢
+      grind
   rootFun' := (· * ·)
   rootFun_eq_rootFun' := Rat.cast_mul
-  polyFun := sorry
+  polyFun := poly_mul
   neZero := sorry
   preservesRoots := sorry
 }
