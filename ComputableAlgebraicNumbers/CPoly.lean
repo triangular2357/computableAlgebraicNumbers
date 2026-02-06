@@ -1016,6 +1016,12 @@ lemma toPolynomial_Monic {R : Type*} [DecidableEq R] [CommSemiring R] (p : CPoly
   unfold Monic Polynomial.Monic
   simp only [toPolynomialSimp]
 
+lemma Monic_liftTo {R S : Type*} [DecidableEq R] [DecidableEq S] [Field R] [CommSemiring S]
+  [Nontrivial S] [Algebra R S] {p : CPoly R} (hp : p.Monic) : (p.liftTo S).Monic := by
+  change (p.map (algebraMap R S)).Monic
+  simp only [toPolynomialSimp, ← Polynomial.mapAlg_eq_map] at hp ⊢
+  exact Polynomial.monic_mapAlg_iff.2 hp
+
 def divByMonic_n {R : Type*} [DecidableEq R] [CommRing R] (q : CPoly R) (hq : q.Monic) :
   ∀ (n : ℕ) (p : CPoly R), p.degree ≤ n → CPoly R
   | 0, p, hp =>
