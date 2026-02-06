@@ -406,6 +406,39 @@ instance (ε : ℚ) (h : ε > 0) :
       grw [← intervalLength_improve, hp]
       simp only [half_lt_self_iff, h]
 
+structure PolyLevelNum (root : ℝ) where
+  root' : ℚ
+  root_eq_root' : root' = root
+  poly : CPoly ℚ
+  neZero : poly ≠ 0
+  preservesRoot : (poly.liftTo ℝ).eval root = 0
+  squarefree : Squarefree poly
+
+def PolyLevelNum.apply {root : ℝ} (pln : PolyLevelNum root) : PreRealAlgebraicNumber where
+  min_poly := pln.poly
+  squarefree := pln.squarefree
+  lower := pln.root'
+  upper := pln.root'
+  lower_le_upper := le_refl _
+  ivt_condition := by
+    rify
+    rw [liftTo_eval, pln.root_eq_root', pln.preservesRoot]
+    simp only [mul_zero, le_refl]
+  deriv_nzero := by
+    intro x hx
+    apply CPoly.deriv_root_ne_zero_of_squarefree
+    · exact pln.squarefree
+    · simp only [Set.Icc_self, Set.mem_singleton_iff, pln.root_eq_root'] at hx
+      exact hx ▸ pln.preservesRoot
+
+lemma PolyLevelNum.apply_toReal {root : ℝ} (pln : PolyLevelNum root)
+  : (pln.apply).toReal = root := by
+  symm
+  unfold PolyLevelNum.apply
+  apply PreRealAlgebraicNumber.uniqueRoot
+  · simp only [Set.Icc_self, ← pln.root_eq_root', Set.mem_singleton_iff]
+  · simp only [pln.preservesRoot]
+
 structure PolyLevelFun' (rootFun : ℝ → ℝ) where
   cont : Continuous rootFun
   semiMonotone : ∀ x a b, x ∈ Set.uIcc a b → rootFun x ∈ Set.uIcc (rootFun a) (rootFun b)
@@ -749,6 +782,29 @@ lemma PolyLevelFun₂.apply_toReal {rootFun : ℝ → ℝ → ℝ} (plf : PolyLe
     · apply ab.1.toReal_isRoot
     · apply ab.2.toReal_isRoot
 
+def zero_pln : PolyLevelNum 0 where
+  root' := 0
+  root_eq_root' := Rat.cast_zero
+  poly := CPoly.X
+  neZero := by decide
+  preservesRoot := by
+    rw [← Rat.cast_zero, ← liftTo_eval]
+    simp only [CPoly.toPolynomial_eval, CPoly.toPolynomial_X, Polynomial.eval_X, Rat.cast_zero]
+  squarefree := by
+    simp [toPolynomialSimp]
+    apply Irreducible.squarefree
+    apply Polynomial.irreducible_X
+
+def add_plf : PolyLevelFun₂ (· + ·) := squarefreeify₂ {
+  cont := by continuity
+  semiMonotone := sorry
+  rootFun' := (· + ·)
+  rootFun_eq_rootFun' := Rat.cast_add
+  polyFun := sorry
+  neZero := sorry
+  preservesRoots := sorry
+}
+
 def neg_plf : PolyLevelFun (-·) := squarefreeify {
   cont := by continuity
   semiMonotone := by
@@ -763,12 +819,200 @@ def neg_plf : PolyLevelFun (-·) := squarefreeify {
   preservesRoots := sorry
 }
 
-def add_plf : PolyLevelFun₂ (·+·) := squarefreeify₂ {
+def one_pln : PolyLevelNum 1 where
+  root' := 1
+  root_eq_root' := Rat.cast_one
+  poly := CPoly.X - CPoly.const 1
+  neZero := by decide
+  preservesRoot := by
+    rw [← Rat.cast_one (α := ℝ), ← liftTo_eval]
+    simp only [toPolynomialSimp, map_one, Polynomial.eval_sub, Polynomial.eval_X,
+      Polynomial.eval_one, sub_self, Rat.cast_zero]
+  squarefree := by
+    apply Irreducible.squarefree
+    rw [CPoly.toPolynomial_Irreducible]
+    apply Polynomial.irreducible_of_degree_eq_one
+    rw [← CPoly.toPolynomial_degree]
+    decide
+
+def mul_plf : PolyLevelFun₂ (· * ·) := squarefreeify₂ {
   cont := by continuity
   semiMonotone := sorry
-  rootFun' := (·+·)
-  rootFun_eq_rootFun' := Rat.cast_add
+  rootFun' := (· * ·)
+  rootFun_eq_rootFun' := Rat.cast_mul
   polyFun := sorry
   neZero := sorry
   preservesRoots := sorry
 }
+
+def equiv : Setoid PreRealAlgebraicNumber where
+  r a b := a.toReal = b.toReal
+  iseqv := InvImage.equivalence _ _ eq_equivalence
+
+abbrev RealAlgebraicNumber := Quotient equiv
+
+noncomputable def RealAlgebraicNumber.toReal (x : RealAlgebraicNumber) : ℝ :=
+  Quotient.liftOn x PreRealAlgebraicNumber.toReal fun _ _ ↦ id
+
+lemma RealAlgebraicNumber.toReal_injective : Function.Injective RealAlgebraicNumber.toReal := by
+  intro a b ha
+  induction a, b using Quotient.ind₂ with
+  | h a b => exact Quotient.sound ha
+
+def PolyLevelNum.lift {root : ℝ} (pln : PolyLevelNum root) : RealAlgebraicNumber := ⟦pln.apply⟧
+
+lemma PolyLevelNum.lift_toReal {root : ℝ} (pln : PolyLevelNum root) : pln.lift.toReal = root :=
+  pln.apply_toReal
+
+def PolyLevelFun.lift {rootFun : ℝ → ℝ} (plf : PolyLevelFun rootFun) :
+  RealAlgebraicNumber → RealAlgebraicNumber := Quotient.lift (fun x ↦ ⟦plf.apply x⟧) <| by
+    intro a b ha
+    apply Quotient.sound' (s₁ := equiv)
+    change (plf.apply a).toReal = (plf.apply b).toReal
+    simp_rw [plf.apply_toReal]
+    apply congrArg rootFun ha
+
+lemma PolyLevelFun.lift_toReal {rootFun : ℝ → ℝ} (plf : PolyLevelFun rootFun)
+  (a : RealAlgebraicNumber) : (plf.lift a).toReal = rootFun a.toReal := by
+  induction a using Quotient.ind
+  apply plf.apply_toReal
+
+def PolyLevelFun₂.lift {rootFun : ℝ → ℝ → ℝ} (plf : PolyLevelFun₂ rootFun) :
+  RealAlgebraicNumber → RealAlgebraicNumber → RealAlgebraicNumber :=
+  Quotient.lift₂ (fun x y ↦ ⟦plf.apply x y⟧) <| by
+    intro a₁ b₁ a₂ b₂ ha hb
+    apply Quotient.sound' (s₁ := equiv)
+    change (plf.apply a₁ b₁).toReal = (plf.apply a₂ b₂).toReal
+    simp_rw [plf.apply_toReal]
+    apply congrArg₂ rootFun ha hb
+
+lemma PolyLevelFun₂.lift_toReal {rootFun : ℝ → ℝ → ℝ} (plf : PolyLevelFun₂ rootFun)
+  (a b : RealAlgebraicNumber) : (plf.lift a b).toReal = rootFun a.toReal b.toReal := by
+  induction a, b using Quotient.ind₂
+  apply plf.apply_toReal
+
+namespace RealAlgebraicNumber
+
+instance : Zero RealAlgebraicNumber where
+  zero := zero_pln.lift
+
+lemma zero_def : 0 = zero_pln.lift := rfl
+
+instance : Add RealAlgebraicNumber where
+  add := add_plf.lift
+
+lemma add_def (a b : RealAlgebraicNumber) : a + b = add_plf.lift a b := rfl
+
+instance : Neg RealAlgebraicNumber where
+  neg := neg_plf.lift
+
+lemma neg_def (a : RealAlgebraicNumber) : -a = neg_plf.lift a := rfl
+
+instance : One RealAlgebraicNumber where
+  one := one_pln.lift
+
+lemma one_def : 1 = one_pln.lift := rfl
+
+instance : Mul RealAlgebraicNumber where
+  mul := mul_plf.lift
+
+lemma mul_def (a b : RealAlgebraicNumber) : a * b = mul_plf.lift a b := rfl
+
+instance : CommRing RealAlgebraicNumber where
+  add_assoc := by
+    intro a b c
+    induction a, b, c using Quotient.inductionOn₃
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [add_def, add_plf.lift_toReal]
+    ring
+  zero_add := by
+    intro a
+    induction a using Quotient.inductionOn
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [add_def, add_plf.lift_toReal, zero_def, zero_pln.lift_toReal]
+    ring
+  add_zero := by
+    intro a
+    induction a using Quotient.inductionOn
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [add_def, add_plf.lift_toReal, zero_def, zero_pln.lift_toReal]
+    ring
+  nsmul := nsmulRec
+  zsmul := zsmulRec
+  neg_add_cancel := by
+    intro a
+    induction a using Quotient.inductionOn
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [add_def, add_plf.lift_toReal, zero_def, zero_pln.lift_toReal, neg_def,
+      neg_plf.lift_toReal]
+    ring
+  add_comm := by
+    intro a b
+    induction a, b using Quotient.inductionOn₂
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [add_def, add_plf.lift_toReal]
+    ring
+  left_distrib := by
+    intro a b c
+    induction a, b, c using Quotient.inductionOn₃
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [mul_def, mul_plf.lift_toReal, add_def, add_plf.lift_toReal, mul_plf.lift_toReal]
+    ring
+  right_distrib := by
+    intro a b c
+    induction a, b, c using Quotient.inductionOn₃
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [mul_def, mul_plf.lift_toReal, add_def, add_plf.lift_toReal, mul_plf.lift_toReal]
+    ring
+  zero_mul := by
+    intro a
+    induction a using Quotient.inductionOn
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [mul_def, mul_plf.lift_toReal, zero_def, zero_pln.lift_toReal]
+    ring
+  mul_zero := by
+    intro a
+    induction a using Quotient.inductionOn
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [mul_def, mul_plf.lift_toReal, zero_def, zero_pln.lift_toReal]
+    ring
+  mul_assoc :=  by
+    intro a b c
+    induction a, b, c using Quotient.inductionOn₃
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [mul_def, mul_plf.lift_toReal]
+    ring
+  one_mul := by
+    intro a
+    induction a using Quotient.inductionOn
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [mul_def, mul_plf.lift_toReal, one_def, one_pln.lift_toReal]
+    ring
+  mul_one := by
+    intro a
+    induction a using Quotient.inductionOn
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [mul_def, mul_plf.lift_toReal, one_def, one_pln.lift_toReal]
+    ring
+  mul_comm := by
+    intro a b
+    induction a, b using Quotient.inductionOn₂
+    apply RealAlgebraicNumber.toReal_injective
+    simp_rw [mul_def, mul_plf.lift_toReal]
+    ring
+
+instance : DecidableEq RealAlgebraicNumber := by
+  intro a b
+  rw [← sub_eq_zero]
+  induction a - b using Quotient.recOnSubsingleton
+  · rw [zero_def, ← toReal_injective.eq_iff, zero_pln.lift_toReal, toReal, Quotient.liftOn_mk]
+    infer_instance
+  · infer_instance
+
+
+
+
+
+
+
+end RealAlgebraicNumber
