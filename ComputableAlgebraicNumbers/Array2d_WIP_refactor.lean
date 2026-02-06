@@ -165,27 +165,24 @@ private def _matrixToReducedRowEchelonForm (M : Array2d ℚ r c) : Array2d ℚ r
 
   let M'c := M._ℚrevNormMatrix h
   let M' := M'c.1
-  let c := M'c.2
+  let column := M'c.2
   have hc: NeZero c := by
     sorry
     --simp []
 
-  let relevant_column' := M'.get_column c hc -- returns empty on c=M.column_count
+  let relevant_column' := M'.get_column column hc -- returns empty on c=M.column_count
   let first_non_zero := (relevant_column'.toList.findIdx? (fun l ↦ ¬( l= 0))).getD 0
   let M'' := M'.mapIdxRC (fun r c q ↦ -- switches rows 0 and first_non_zero
     if r=0 then M'.atD first_non_zero c 0 else
     if r=first_non_zero then M'.atD 0 c 0 else q)
 
-  let relevant_column'' := M''.get_column c hc -- returns empty on c=M.column_count
+  let relevant_column'' := M''.get_column column hc -- returns empty on c=M.column_count
   let step := M''.mapIdxRC (fun r c q ↦
     if r = 0 ∨ relevant_column''.getD r 0 = 0 then q else
     q - M''.atD 0 c 0 -- subtract first row
   )
 
-  have hrc:step.row_count = M.row_count := by
-    have hrc':M'.row_count = M.row_count := by
-      apply _ℚrevNormMatrixKeepsRowCount M h
-    apply hrc'
+  have hrc:r = r := by rfl
   have :step.NeEmpty := by
     unfold step
     apply mapIdxRCKeepsNeEmpty _ _
@@ -194,29 +191,25 @@ private def _matrixToReducedRowEchelonForm (M : Array2d ℚ r c) : Array2d ℚ r
     unfold M' M'c
     apply _ℚrevNormMatrixKeepsNeEmpty M h
 
-  let smaller : Array2d ℚ := ⟨
-    step.data.extract step.column_count,
-    step.row_count-1,
-    step.column_count,
+  let smaller : Array2d ℚ (r-1) c := ⟨
+    step.data.extract c,
     by
       rw [Array.size_extract_of_le ?_]
-      · rw [step.condition, Nat.sub_one_mul step.row_count step.column_count]
+      · rw [step.condition, Nat.sub_one_mul r c]
       · linarith
   ⟩
 
-  have :step.row_count - 1 < M.row_count := by
+  have :r - 1 < r := by
     rw [hrc]; simp; rw [Nat.pos_iff_ne_zero];rw [← neZero_iff]; apply NeEmpty_NeZero_row_count M h
   let smaller_step := _matrixToReducedRowEchelonForm smaller
-  let result : Array2d ℚ := ⟨
-    (step.data.extract 0 step.column_count) ++ smaller_step.data,
-    smaller.row_count + 1,
-    smaller.column_count,
+  let result : Array2d ℚ r c := ⟨
+    (step.data.extract 0 c) ++ smaller_step.data,
     by
       rw [Array.size_append, Array.size_extract_of_le ?_]
-      · have :smaller_step.data.size = smaller.data.size := sorry
-        rw [this,smaller.condition, tsub_zero, add_comm, Nat.add_one_mul]
+      · sorry
+        --rw [smaller.condition, tsub_zero, add_comm, Nat.add_one_mul]
       · rw [step.condition]
-        have h': 1 ≤ step.row_count := by
+        have h': 1 ≤ r := by
           rw [Nat.one_le_iff_ne_zero]
           have h':step.NeEmpty := by
             clear smaller_step
@@ -228,10 +221,10 @@ private def _matrixToReducedRowEchelonForm (M : Array2d ℚ r c) : Array2d ℚ r
   ⟩
   result
   else M
-termination_by M.row_count
+termination_by r
 
 
-lemma _matrixToReducedRowEchelonFormKeepsSize (M : Array2d ℚ)
+lemma _matrixToReducedRowEchelonFormKeepsSize (M : Array2d ℚ r c)
   :(M._matrixToReducedRowEchelonForm).data.size = M.data.size :=by
   unfold _matrixToReducedRowEchelonForm
   sorry
@@ -239,22 +232,22 @@ lemma _matrixToReducedRowEchelonFormKeepsSize (M : Array2d ℚ)
   --apply _ℚrevNormMatrixKeepsSize
 
 def find_eliminator {n : ℕ} (V : Vector (Vector ℚ n) (n + 1)) : IO (Vector ℚ (n + 1)) := do
-  let Range : Array2d ℚ:= ⟨(Array.range (n*(n+2))).map (Rat.instNatCast.natCast ·),
-                           n, n+2, by grind⟩
+  let Range : Array2d ℚ n (n+2) := ⟨(Array.range (n*(n+2))).map (Rat.instNatCast.natCast ·),
+                            by grind⟩
   let M := Range.mapIdxRC (fun r c q ↦
     if h: c > n then 0 else
     let column := V.getD c (Vector.ofFn (fun _:Fin n ↦ (0:ℚ)))
     column.getD r (0:ℚ)
   )
   let M' := M._matrixToReducedRowEchelonForm
-  let M'rows := (Array.range M'.row_count).map (fun (r:ℕ) ↦ (M'.get_row r).toArray)
+  let M'rows := (Array.range n).map (fun (r:ℕ) ↦ (M'.get_row r).toArray)
   let ones := M'rows.map (fun row ↦ row.findIdx (· = 1))
   -- TODO use something with Nat and find directly
   let coloum:ℕ := (Array.range (n+2)).findIdx
-    (fun c ↦ ((ones.findIdx (fun q ↦ q=c)) = M'.row_count))
-  let M'' : Array2d ℚ:= ⟨M'.data ++ ((Array.range (n+2)).map (
+    (fun c ↦ ((ones.findIdx (fun q ↦ q=c)) = n))
+  let M'' : Array2d ℚ (n+1) (n+2) := ⟨M'.data ++ ((Array.range (n+2)).map (
     fun c ↦ if c = coloum ∨ c = n+1 then 1 else 0
-  )),n+1, n+2, by
+  )), by
     rw [Array.size_append]
     rw [Array.size_map]
     have :M'.data.size = n*(n+2) := by
@@ -268,18 +261,16 @@ def find_eliminator {n : ℕ} (V : Vector (Vector ℚ n) (n + 1)) : IO (Vector �
   if h:n=0 then
     return cast (congrArg _ (show 1 = n + 1 by grind only)) #v[(1:ℚ)]
   else
-  have h' : NeZero M'''.column_count := by sorry
+  have h' : NeZero (n+2) := by sorry
 
-  let M'''rows := (Array.range M'''.row_count).map (fun (r:ℕ) ↦ (M'''.get_row r).toArray)
+  let M'''rows := (Array.range (n+1)).map (fun (r:ℕ) ↦ (M'''.get_row r).toArray)
   let ones := M'''rows.map (fun row ↦ row.findIdx (· = 1))
 
   IO.println s!"M'' {M''.data}"
-  IO.println s!"M''column_count {M''.column_count}"
   IO.println s!"M''' {M'''.data}"
-  IO.println s!"M'''column_count {M'''.column_count}"
 
   return ((Vector.range (n+1)).map (fun (c:ℕ) ↦
-    M'''.atD (ones.findIdx (fun q ↦ q=c)) (M'''.column_count-1) 0
+    M'''.atD (ones.findIdx (fun q ↦ q=c)) (c-1) 0
     ))
   --let coloum:ℕ := (Array.range (n+2)).findIdx
   --    (fun c ↦ ((ones.findIdx (fun q ↦ q=c)) = M.row_count))
@@ -288,7 +279,7 @@ def find_eliminator {n : ℕ} (V : Vector (Vector ℚ n) (n + 1)) : IO (Vector �
   --  (((M'''.get_column n h').findIdx? (· = 1)).getD (n+2))
   --)).map (M'''.atD · (n+1) 0)
 
-
+/-
 def M := (Array2d.mk #[1,2,(Rat.mk' 1 2)] 1 3 (by decide))
 def M' := (Array2d.mk #[1,2,(Rat.mk' 1 2),1,1,1] 2 3 (by decide))
 def M2' := (Array2d.mk #[2,2,(Rat.mk' 1 2)] 1 3 (by decide))
@@ -327,5 +318,5 @@ instance : NeZero M2'.column_count := NeEmpty_NeZero_column_count M2' (by decide
 #eval M'.mapIdxRC (fun r c _ ↦ 10*r+c) |> data
 #eval M.mapIdx (fun i _ ↦ i) |> data
 #eval! M'._matrixToReducedRowEchelonForm |> data
-
+-/
 end Array2d
