@@ -1046,5 +1046,4 @@ instance : DecidableEq RealAlgebraicNumber := by
 
 
 
-
 end RealAlgebraicNumber
