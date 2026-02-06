@@ -67,8 +67,8 @@ We also have the notion of a `PolyLevelFun` which consist of data and proves req
 ### [Tests.lean](ComputableAlgebraicNumbers/Tests.lean)
 A few Tests for our real algebraic numbers.
 
-### [Array2d.lean](ComputableAlgebraicNumbers/WIP_Array2d.lean) [Array2d_WIP_refactor.lean](ComputableAlgebraicNumbers/WIP_Array2d_refactor.lean)
+### [WIP_Array2d.lean](ComputableAlgebraicNumbers/WIP_Array2d.lean) [WIP_Array2d_refactor.lean](ComputableAlgebraicNumbers/WIP_Array2d_refactor.lean)
 An efficient WIP linear equations solver.
 
-### [PolyFactor.lean](ComputableAlgebraicNumbers/WIP_PolyFactor.lean)
+### [WIP_PolyFactor.lean](ComputableAlgebraicNumbers/WIP_PolyFactor.lean)
 WIP polynom factorization
