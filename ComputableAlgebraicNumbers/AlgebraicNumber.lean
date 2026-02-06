@@ -1042,8 +1042,13 @@ instance : DecidableEq RealAlgebraicNumber := by
   · infer_instance
 
 
+unsafe instance : Repr RealAlgebraicNumber where
+   reprPrec a := fun n ↦
+    let unquoted := Quot.unquot a
+    let polynom := Repr.reprPrec (unquoted.min_poly) n
+    Std.Format.text s!"{unquoted.lower} ≤ X ≤ {unquoted.upper} ∧ 0 = {polynom} "
 
-
+#eval! (5:RealAlgebraicNumber)
 
 
 end RealAlgebraicNumber
