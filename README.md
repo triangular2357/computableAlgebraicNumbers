@@ -45,7 +45,7 @@ We did not get around to implement this.
 
 ### [ApproximationType.lean](ComputableAlgebraicNumbers/ApproximationType.lean)
 
-To implement brefining bounds, we introduced the notion of an `ApproximationType`, which is a Type with an `improve` endofunction. In our case, we take the bisect our interval and check in which half the root lies. If we have a decidable predicate that is eventually true if we improve often enough and that is stable under further improve operations, we call it exact. Then we can, from each element improve until the predicate is true. That is how we refine bounds sufficiently foreach given prupose.
+To implement brefining bounds, we introduced the notion of an `ApproximationType`, which is a Type with an `improve` endofunction. In our case, we take the bisect our interval and check which half the root lies in. If we have a decidable predicate that is eventually true if we improve often enough and that is stable under further improve operations, we say it `isExact`. Then we can, from each element improve until the predicate is true. That is how we refine bounds sufficiently whereever we need to.
 
 ### [CPoly.lean](ComputableAlgebraicNumbers/CPoly.lean)
 
@@ -60,6 +60,7 @@ Here we define functions to find a polynomial that has the sums/products of pair
 A `PreRealAlgebraicNumber` consists of a minimal polynomial (which is actually not required to be minimal, just a squarefree polynomial with the number as a root), an upper and lower bound, and some proofs:
 - A prove that the polynomial has different sings (or is zero) on the bounds
 - A prove that the derivative is non-zero on the entire interval
+
 From these it is easy to conclude that there is exactly one root in the (closed) interval. We have some lemmas to work with them.
 We also have the notion of a `PolyLevelFun` which consist of data and proves required to implement a function on real numbers to a function on real algebraic numbers. Here we sorryed some proves that this data actually suffices. This `PolyLevelFun` can now `lift` to a function on real algebraic numbers. Real algebraic numbers are a quotient of Pre-real-algebraic-numbers by them having the same root (This equivalence relation is not decidable, this is not an issue).
 
