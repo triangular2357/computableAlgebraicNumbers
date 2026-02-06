@@ -1,4 +1,20 @@
-import Mathlib
+import Mathlib.Algebra.Lie.OfAssociative
+import Mathlib.Algebra.Module.Torsion.Free
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Calculus.Deriv.Polynomial
+import Mathlib.Analysis.Calculus.MeanValue
+import Mathlib.Analysis.InnerProductSpace.Basic
+import Mathlib.Data.Int.Star
+import Mathlib.Data.List.ToFinsupp
+import Mathlib.Data.Rat.Star
+import Mathlib.Data.Real.StarOrdered
+import Mathlib.FieldTheory.Perfect
+import Mathlib.Order.BourbakiWitt
+import Mathlib.RingTheory.DedekindDomain.Basic
+import Mathlib.RingTheory.Henselian
+import Mathlib.RingTheory.Polynomial.UniqueFactorization
+import Mathlib.RingTheory.SimpleRing.Principal
+
 import ComputableAlgebraicNumbers.toPolynomialSimpSet
 
 namespace CPoly
@@ -789,6 +805,9 @@ noncomputable def toPolynomial_ringEquiv {R : Type*} [CommSemiring R] [Decidable
   right_inv := toPolynomial_Equiv.right_inv
   map_mul' := toPolynomial_mul
   map_add' := toPolynomial_add
+
+def map' {R S : Type*} [CommSemiring R] [CommSemiring S] [DecidableEq R] [DecidableEq S]
+  (f : R → S) (a : CPoly R) : CPoly S := toCPoly (a.coefs.map f)
 
 def map {R S : Type*} [CommSemiring R] [CommSemiring S] [DecidableEq R] [DecidableEq S]
   (f : R →+* S) (a : CPoly R) : CPoly S := toCPoly (a.coefs.map f)
