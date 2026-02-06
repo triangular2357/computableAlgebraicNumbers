@@ -1,6 +1,6 @@
 # Computable algebraic numbers
 
-This project aims to make the algebraic closure of the rationals, short algebraic numbers or 𝔸, computable.
+This project aims to make the algebraic closure of the rationals, in short algebraic numbers, computable.
 This consists of computable equality, addition, additive inverses, multiplication and multiplicative inverses.
 The real and complex parts are stored separately both as an real algebraic number.
 We store a real algebraic number by storing a square free polynomial, a rational lower and upper bound forming a closed interval containing exactly the root we want to store where the derivative is none zero everywhere,
