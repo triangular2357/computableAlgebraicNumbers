@@ -53,10 +53,15 @@ We implement our own Polynomial ring `CPoly R` in a way that is computable, i. e
 
 ### [PolyOperations.lean](ComputableAlgebraicNumbers/PolyOperations.lean)
 
+Here we define functions to find a polynomial that has the sums/products of pairs of root of given polynomials as roots, as described above, this requires solving a linear system. We can always phrase this as finding a non-zero vector in the kernel of a matrix with more columns then rows, which is always possible. We wrote our own solver for this problem, but for time reasons we did not manage to prove its correctness, hence we sorryed the corresponding proves.
 
 ### [AlgebraicNumber.lean](ComputableAlgebraicNumbers/AlgebraicNumber.lean)
 
-
+A `PreRealAlgebraicNumber` consists of a minimal polynomial (which is actually not required to be minimal, just a squarefree polynomial with the number as a root), an upper and lower bound, and some proofs:
+- A prove that the polynomial has different sings (or is zero) on the bounds
+- A prove that the derivative is non-zero on the entire interval
+From these it is easy to conclude that there is exactly one root in the (closed) interval. We have some lemmas to work with them.
+We also have the notion of a `PolyLevelFun` which consist of data and proves required to implement a function on real numbers to a function on real algebraic numbers. Here we sorryed some proves that this data actually suffices. This `PolyLevelFun` can now `lift` to a function on real algebraic numbers. Real algebraic numbers are a quotient of Pre-real-algebraic-numbers by them having the same root (This equivalence relation is not decidable, this is not an issue).
 
 ### [Tests.lean](ComputableAlgebraicNumbers/Tests.lean)
 A few Tests for our real algebraic numbers.
